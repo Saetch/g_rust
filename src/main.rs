@@ -110,10 +110,10 @@ pub fn draw_line_width(can : &mut Canvas<Window>, start : Point, end : Point, wi
     
     let sin: f32 =  x_diff as f32 / len;
     let cos: f32 = y_diff as f32 / len;
-    let mut x_offset= 0.0f32;
-    let mut y_offset= 0.0f32;
-    let mut x_int = 0;
-    let mut y_int = 0;
+    let mut x_offset;
+    let mut y_offset;
+    let mut x_int;
+    let mut y_int;
     for i in -(width as i32)..= width as i32 {
 
         x_offset = (cos* i as f32).round();
