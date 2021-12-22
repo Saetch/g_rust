@@ -49,13 +49,13 @@ pub fn main() {
         //Das ist bad practice! Wenn die Framerate fällt, wäre hier die Logik langsamer sleep(Duration::new(0, 1_000_000_000u32 / 60). Das muss man verbessern!
         //indem man die vergangene Zeit explizit berechnet und als argument der Logik übergibt, die darauf multipliziert
         if up{ 
-            i = i + 1 ;
+            i +=1 ;
             if i == 255{
                 up = false;
             }
         }
         else{
-            i = i-1;
+            i -= 1;
             if i == 0 {
                 up = true;
             }
@@ -72,8 +72,7 @@ pub fn main() {
                     vertical = false;
                 }
             }
-        }else{
-            if x == 500 {
+        }else if x == 500 {
                 y-=1;
                 if y == 200{
                     vertical= true;
@@ -83,8 +82,8 @@ pub fn main() {
                 if y == 400{
                     vertical = true;
                 }
-            }
         }
+        
 
         canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
         canvas.clear();
