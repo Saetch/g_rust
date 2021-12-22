@@ -26,10 +26,16 @@ pub fn main() {
     canvas.set_draw_color(Color::RGB(0, 255, 255));
     canvas.clear();
     let texture_creator = canvas.texture_creator();
+    let mut texture2 = texture_creator.create_texture_target(texture_creator.default_pixel_format(), 200, 200).unwrap();
+    let texture_meme = texture_creator.load_texture("wonbutcost.jpg").unwrap();
+    
     let texture = texture_creator.load_texture("Dwarf_BaseHouse.png").unwrap();
-    let texture2 = texture_creator.load_texture("wonbutcost.jpg").unwrap();
   //  let tex_result = canvas.copy(texture, Some(Rect::new(0, 0, 100, 100)), Some(Rect::new(500, 500, 100, 100)))
-
+    canvas.with_texture_canvas(&mut texture2, |texture_canvas|{
+        texture_canvas.copy(&texture_meme , None, Rect::new(0,0,200,200)).unwrap();
+        texture_canvas.set_draw_color(Color::RGB(0, 0, 0));
+        texture_canvas.fill_rect(Rect::new(75, 75, 50, 50)).unwrap();
+    }).unwrap();
     canvas.present();
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut i = 0;
