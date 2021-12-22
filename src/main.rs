@@ -3,11 +3,11 @@ extern crate sdl2;
 use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::rect::Point;
-use sdl2::render::Canvas;
+use sdl2::rect::{Point, Rect};
+use sdl2::render::{Canvas, Texture};
 use sdl2::video::Window;
 use std::time::Duration;
-
+use sdl2::image::{InitFlag, LoadTexture};
 
 const WIDTH : u32 = 1200;
 const HEIGHT : u32 = 800;
@@ -25,6 +25,11 @@ pub fn main() {
 
     canvas.set_draw_color(Color::RGB(0, 255, 255));
     canvas.clear();
+    let texture_creator = canvas.texture_creator();
+    let texture = texture_creator.load_texture("Dwarf_BaseHouse.png").unwrap();
+    let texture2 = texture_creator.load_texture("wonbutcost.jpg").unwrap();
+  //  let tex_result = canvas.copy(texture, Some(Rect::new(0, 0, 100, 100)), Some(Rect::new(500, 500, 100, 100)))
+
     canvas.present();
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut i = 0;
@@ -32,6 +37,7 @@ pub fn main() {
     let mut vertical = true;
     let mut x = 500;
     let mut y = 200;
+    let mut angle = 0.0f64;
     'running: loop {
 
         //Das ist bad practice! Wenn die Framerate fällt, wäre hier die Logik langsamer sleep(Duration::new(0, 1_000_000_000u32 / 60). Das muss man verbessern!
@@ -77,13 +83,15 @@ pub fn main() {
         canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
         canvas.clear();
         canvas.set_draw_color(Color::RGB(0, 0, 0));
-        
+        angle+=1.0f64;
         //45*
         draw_line_width(&mut canvas , Point::new(100, 100), Point::new(200, 100), 5);
-    
+        
         draw_line_width(&mut canvas, Point::new( 200, 300), Point::new(200, 200), 5);
         draw_line_width(&mut canvas, Point::new( 200, 300), Point::new(100, 300), 5);
-        draw_line_width(&mut canvas, Point::new(600, 300), Point::new(x, y), 10);
+        draw_line_width(&mut canvas, Point::new(600, 300), Point::new(x, y), 5);
+        canvas.copy(&texture2, None, Rect::new(100, 200, 120,100));
+        canvas.copy_ex(&texture, None, Some(Rect::new(500, 200, 100, 100)).unwrap(), angle, Point::new(100, 100), false, false).unwrap();
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit {..} |
