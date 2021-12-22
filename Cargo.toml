@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 ash = "0.26.0" 
+ash-window = "0.7"
 winit = "0.25.0"
 image = "0.10.4"
