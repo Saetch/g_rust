@@ -126,9 +126,10 @@ pub fn draw_line_width(can : &mut Canvas<Window>, start : Point, end : Point, wi
 
         x_offset = (cos* i as f32).round();
         y_offset= (sin* i as f32).round();
-        x_int = x_offset as i32;
+        //if this is not negative, the calculation is wrong (looks like the start/end turns in the wrong direction)
+        x_int = -x_offset as i32;
         y_int = y_offset as i32;
-        can.draw_line(Point::new(start.x()- x_int , start.y()+y_int),  Point::new(end.x()- x_int , end.y()+y_int)).unwrap();
+        can.draw_line(Point::new(start.x()+ x_int , start.y()+y_int),  Point::new(end.x()+ x_int , end.y()+y_int)).unwrap();
 
            /*
         //first try   
