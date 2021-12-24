@@ -1,156 +1,77 @@
-extern crate sdl2;
+extern crate glutin_window;
+extern crate graphics;
+extern crate opengl_graphics;
+extern crate piston;
 
-use sdl2::pixels::Color;
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
-use sdl2::rect::{Point, Rect};
-use sdl2::render::{Canvas, Texture};
-use sdl2::video::Window;
-use std::time::Duration;
-use sdl2::image::{InitFlag, LoadTexture};
+use glutin_window::GlutinWindow;
+use opengl_graphics::{GlGraphics, OpenGL};
+use piston::event_loop::{EventSettings, Events};
+use piston::input::{RenderArgs, RenderEvent, UpdateArgs, UpdateEvent};
+use piston::window::WindowSettings;
 
-const WIDTH : u32 = 1200;
-const HEIGHT : u32 = 800;
+pub struct App {
+    gl: GlGraphics, // OpenGL drawing backend.
+    rotation: f64,  // Rotation for the square.
+}
 
-pub fn main() {
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
+impl App {
+    fn render(&mut self, args: &RenderArgs) {
+        use graphics::*;
+        //RGBA color definition in array: red, green, blue, alpha (1- opacity)
+        const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
+        const RED: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
 
-    let window = video_subsystem.window("rust-sdl2 demo", WIDTH, HEIGHT)
-        .position_centered()
+        let rotation = self.rotation;
+        //place it at x,y, in this case in the middle: args.window_size[0] -> width, args.window_size[1] -> height
+        let (x, y) = (args.window_size[0] / 2.0, args.window_size[1] / 2.0);
+        let square = graphics::rectangle::square(0.0, 0.0, 50.0);
+
+        self.gl.draw(args.viewport(), |c, gl| {
+            // Clear the screen.
+            clear(GREEN, gl);
+//transformations are calculatedfor the viewPort. This means, that the center of the screen will be moved to x,y, then 
+//rotated, then offset an then the square is drawn with the top left corner at the given point. Then the screen is reset to the default
+//position
+            let transform = c
+                .transform
+                .trans(x, y)
+                .rot_rad(rotation)
+                .trans(-25.0, -25.0);               
+
+            // Draw a box rotating around the middle of the screen.
+            rectangle(RED, square, transform, gl);
+        });
+    }
+
+    fn update(&mut self, args: &UpdateArgs) {
+        // Rotate 2 radians per second.
+        self.rotation += 2.0 * args.dt;
+    }
+}
+
+fn main() {
+    // Change this to OpenGL::V2_1 if not working.
+    let opengl = OpenGL::V3_2;
+    // Create an Glutin window.
+    let mut window: GlutinWindow = WindowSettings::new("spinning-square", [200, 200])
+        .graphics_api(opengl)
         .build()
         .unwrap();
 
-    let mut canvas = window.into_canvas().build().unwrap();
+    // Create a new game and run it.
+    let mut app = App {
+        gl: GlGraphics::new(opengl),
+        rotation: 0.0,
+    };
 
-    canvas.set_draw_color(Color::RGB(0, 255, 255));
-    canvas.clear();
-    let texture_creator = canvas.texture_creator();
-    let mut texture2 = texture_creator.create_texture_target(texture_creator.default_pixel_format(), 200, 200).unwrap();
-    let texture_meme = texture_creator.load_texture("wonbutcost.jpg").unwrap();
-    
-    let texture = texture_creator.load_texture("Dwarf_BaseHouse.png").unwrap();
-  //  let tex_result = canvas.copy(texture, Some(Rect::new(0, 0, 100, 100)), Some(Rect::new(500, 500, 100, 100)))
-    canvas.with_texture_canvas(&mut texture2, |texture_canvas|{
-        texture_canvas.copy(&texture_meme , None, Rect::new(0,0,200,200)).unwrap();
-        texture_canvas.set_draw_color(Color::RGB(0, 0, 0));
-        texture_canvas.fill_rect(Rect::new(75, 75, 50, 50)).unwrap();
-    }).unwrap();
-    canvas.present();
-    let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut i = 0;
-    let mut up : bool = true;
-    let mut vertical = true;
-    let mut x = 500;
-    let mut y = 200;
-    let mut angle = 0.0f64;
-    'running: loop {
+    let mut events = Events::new(EventSettings::new());
+    while let Some(e) = events.next(&mut window) {
+        if let Some(args) = e.render_args() {
+            app.render(&args);
+        }
 
-        //Das ist bad practice! Wenn die Framerate fällt, wäre hier die Logik langsamer sleep(Duration::new(0, 1_000_000_000u32 / 60). Das muss man verbessern!
-        //indem man die vergangene Zeit explizit berechnet und als argument der Logik übergibt, die darauf multipliziert
-        if up{ 
-            i +=1 ;
-            if i == 255{
-                up = false;
-            }
+        if let Some(args) = e.update_args() {
+            app.update(&args);
         }
-        else{
-            i -= 1;
-            if i == 0 {
-                up = true;
-            }
-        }
-        if vertical{
-            if y == 200{
-                x+=1;
-                if x == 700{
-                    vertical = false;
-                }
-            }else{
-                x-=1;
-                if x == 500{
-                    vertical = false;
-                }
-            }
-        }else if x == 500 {
-                y-=1;
-                if y == 200{
-                    vertical= true;
-                }
-            }else{
-                y+=1;
-                if y == 400{
-                    vertical = true;
-                }
-        }
-        
-
-        canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
-        canvas.clear();
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        angle+=1.0f64;
-        //45*
-        draw_line_width(&mut canvas , Point::new(100, 100), Point::new(200, 100), 5);
-        
-        draw_line_width(&mut canvas, Point::new( 200, 300), Point::new(200, 200), 5);
-        draw_line_width(&mut canvas, Point::new( 200, 300), Point::new(100, 300), 5);
-        draw_line_width(&mut canvas, Point::new(600, 300), Point::new(x, y), 5);
-        canvas.copy(&texture2, None, Rect::new(100, 200, 120,100));
-        canvas.copy_ex(&texture, None, Some(Rect::new(500, 200, 100, 100)).unwrap(), angle, Point::new(100, 100), false, false).unwrap();
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit {..} |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                    break 'running
-                },
-                _ => {}
-            }
-        }
-        // The rest of the game loop goes here...
-
-        canvas.present();
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 }
-
-
-pub fn draw_line_width(can : &mut Canvas<Window>, start : Point, end : Point, width: u32){
-    let x_diff = end.x() - start.x();
-    let y_diff = end.y() - start.y();
-    let len;
-    
-    len = f32::sqrt( (x_diff*x_diff +y_diff*y_diff) as f32);
-    
-    let sin: f32 =  x_diff as f32 / len;
-    let cos: f32 = y_diff as f32 / len;
-    let mut x_offset;
-    let mut y_offset;
-    let mut x_int;
-    let mut y_int;
-    for i in -(width as i32)..= width as i32 {
-
-        x_offset = (cos* i as f32).round();
-        y_offset= (sin* i as f32).round();
-        //if this is not negative, the calculation is wrong (looks like the start/end turns in the wrong direction)
-        x_int = -x_offset as i32;
-        y_int = y_offset as i32;
-        can.draw_line(Point::new(start.x()+ x_int , start.y()+y_int),  Point::new(end.x()+ x_int , end.y()+y_int)).unwrap();
-
-           /*
-        //first try   
-        if cos > sin{
-            can.draw_line(Point::new(start.x()+i , start.y()+(((i as f32)*sin).round() as i32)),  Point::new(end.x()+i , end.y()+(((i as f32)*sin).round()as i32))).unwrap();
-
-        }else{
-            can.draw_line(Point::new(start.x()+(((i as f32) *cos ).round()as i32), start.y()+i ),  Point::new(end.x()+(((i as f32) *cos ).round()as i32), end.y()+i )).unwrap();
-        }*/
-
-       
-        
-    }
-  
-}
-    
-
-
-    

@@ -6,5 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sdl2 = {version = "0.35.1", features=["bundled", "image" ]}
-
+piston = "0.53.1"
+piston2d-graphics = "0.41.0"
+pistoncore-glutin_window = "0.69.0"
+piston2d-opengl_graphics = "0.79.0"
