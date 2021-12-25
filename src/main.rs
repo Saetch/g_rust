@@ -3,11 +3,22 @@ extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
 
+use std::time::Instant;
 use glutin_window::GlutinWindow;
 use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventSettings, Events};
 use piston::input::{RenderArgs, RenderEvent, UpdateArgs, UpdateEvent};
 use piston::window::WindowSettings;
+#[derive(Debug)]
+enum List {
+    Cons(Rc<RefCell<i32>>, Rc<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+use std::cell::RefCell;
+use std::rc::Rc;
+
 
 pub struct App {
     gl: GlGraphics, // OpenGL drawing backend.
@@ -41,6 +52,7 @@ impl App {
             // Draw a box rotating around the middle of the screen.
             rectangle(RED, square, transform, gl);
         });
+
     }
 
     fn update(&mut self, args: &UpdateArgs) {
@@ -50,6 +62,7 @@ impl App {
 }
 
 fn main() {
+
     // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V3_2;
     // Create an Glutin window.
@@ -65,13 +78,20 @@ fn main() {
     };
 
     let mut events = Events::new(EventSettings::new());
+    let mut start = Instant::now();
     while let Some(e) = events.next(&mut window) {
         if let Some(args) = e.render_args() {
+            //This gets called 60 times per second (60fps), if the elapsed time shown is >17, the fps dropped
             app.render(&args);
+    
         }
 
         if let Some(args) = e.update_args() {
-            app.update(&args);
+            app.update(&args);  
+            let elapsed = start.elapsed();
+            println!("Elapsed time: {}ms", elapsed.as_millis());
+            start = Instant::now();
+
         }
     }
 }
