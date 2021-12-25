@@ -38,12 +38,14 @@ fn main() {
             //This gets called 60 times per second (60fps), if the elapsed time shown is >17, the fps dropped
             //app.render(&args);
             view.render(&args);
+
+            //These three lines are just for displaying the elapsed time sincce the last rendering call
             let elapsed = start.elapsed();
             println!("Elapsed time: {}ms", elapsed.as_millis());
             start = Instant::now();
     
         }
-
+        //checking the fps is not needed here, as elapsed time is a data field of args
         if let Some(args) = e.update_args() {
             model.update(&args);
 

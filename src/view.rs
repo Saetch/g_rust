@@ -12,9 +12,7 @@ pub struct PistonView{
 }
 
 impl PistonView {
-    pub fn new(// model : &Arc<Model>
-        rot: &Arc<Mutex<f64>>
-        , opengl: OpenGL) -> Self{
+    pub fn new(rot: &Arc<Mutex<f64>>, opengl: OpenGL) -> Self{
 
         PistonView{
             gl : GlGraphics::new(opengl),
