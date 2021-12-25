@@ -29,7 +29,7 @@ fn main() {
 
     let mut events = Events::new(EventSettings::new());
     let mut start = Instant::now();
-    let mut model =  Model::new(800.0f32, 800.0f32, (400.0f32, 600.0f32), (10.0f32, 10.0f32));
+    let mut model =  Model::new();
     let mut view = PistonView::new(&model.rotation, opengl);
 
     //TODO: split rendering and game logic to different threads. Check if this is possible with channels(sync)
