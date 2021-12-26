@@ -6,14 +6,18 @@ extern crate piston;
 mod view;
 mod model;
 mod constants;
+mod controller;
 
+
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use constants::{FIELDWIDTH, FIELDHEIGHT};
+use controller::Controller;
 use glutin_window::GlutinWindow;
 use model::Model;
 use opengl_graphics::{ OpenGL};
 use piston::event_loop::{EventSettings, Events};
-use piston::input::{RenderEvent, UpdateEvent};
+use piston::input::{RenderEvent, UpdateEvent, MouseScrollEvent, ButtonEvent};
 use piston::window::WindowSettings;
 use view::PistonView;
 
@@ -29,27 +33,37 @@ fn main() {
         .build()
         .unwrap();
 
+
+    
     let mut events = Events::new(EventSettings::new());
     let mut start = Instant::now();
-    let mut model =  Model::new(800.0f32, 800.0f32, (400.0f32, 600.0f32), (10.0f32, 10.0f32));
-    let mut view = PistonView::new(&model.rotation, opengl, &model.ball_pos);
-
-    //TODO: split rendering and game logic to different threads. Check if this is possible with channels(sync)
+    let mut view;
+    //WIDTH and HEIGHT are defined in constants.rs
+    let mut model =  Arc::new(Mutex::new(Model::new( (450.0f32, 400.0f32), (10.0f32, 10.0f32))));
+    {
+        let unwrap_model = model.lock().unwrap();                           //mutex gets automatically unlocked, when out of scope, so these parenthesis: {} are used to make a new scope, but view is declared above and thus is only changed here        
+        view = PistonView::new(&unwrap_model.rotation, opengl, &unwrap_model.ball_pos); //if you were to use two model.lock().unwrap()s in this declaration, the application would deadlock
+    }
+    let mut controller = Controller::new(&model);
+    //TODO: split rendering and game logic to different threads. Check if this is possible with channels(sync), otherwise might use shared message buffer that is continuously read from
     while let Some(e) = events.next(&mut window) {
         if let Some(args) = e.render_args() {
-            //This gets called 60 times per second (60fps), if the elapsed time shown is >17, the fps dropped
-            //app.render(&args);
             view.render(&args);
             let elapsed = start.elapsed();
-            println!("Elapsed time: {}ms", elapsed.as_millis());
+            println!("Elapsed time: {}ms", elapsed.as_millis());              //This gets called 60 times per second (60fps), if the elapsed time shown is >17, the fps dropped
             start = Instant::now();
-    
+            
+            continue;                                      //SKIP the other possible updateArgs, because only one can be valid
         }
 
         if let Some(args) = e.update_args() {
-            model.update(&args);
+            model.lock().unwrap().update(&args);
+            continue;                                     //SKIP the other possible updateArgs, because only one can be validoo
+        }
 
-
+        if let Some(args) = e.button_args(){
+            controller.compute_input(&args);
+            continue;                                     //SKIP the other possible updateArgs, because only one can be validoo
         }
     }
 }

@@ -1,11 +1,11 @@
 use std::sync::{ Arc, Mutex};
 
-use graphics::{Context, rectangle::{ self, rectangle_by_corners}, Rectangle, Transformed, draw_state};
+use graphics::{Context, rectangle::{ self, rectangle_by_corners}, Rectangle, Transformed, draw_state, ellipse};
 use opengl_graphics::{GlGraphics, OpenGL};
 use piston::{ RenderArgs};
 
 //constants are defined in constants.rs, for use in the whole project
-use crate::constants::{self as constant, FIELDWIDTH, FIELDHEIGHT};
+use crate::constants::{self as constant, FIELDWIDTH, FIELDHEIGHT, CIRCLERADIUS};
 
 
         //const values are compile time values and thus don't slow down the program
@@ -41,13 +41,12 @@ impl PistonView {
         let position = *self.pos.lock().unwrap();
         //place it at x,y, in this case in the middle: args.window_size[0] -> width, args.window_size[1] -> height
         let (x, y) = (args.window_size[0] / 2.0, args.window_size[1] / 2.0);
-
         self.gl.draw(args.viewport(), |c, gl| {
             //the functions used here, like clear/rectangle are in namespace graphics::*, the use statement makes these omittable
             clear(DARKGREY, gl);
 
             PistonView::draw_background(&c, gl, args);
-            
+            PistonView::draw_objects(&c, gl, args, &position);
 
 //transformations are calculatedfor the viewPort. This means, that the center of the screen will be moved to x,y, then 
 //rotated, then offset an then the square is drawn with the top left corner at the given point. Then the screen is reset to the default
@@ -65,8 +64,9 @@ impl PistonView {
         });
     }
 
-
-   // #[inline(always)]
+//remove #[inline] if you want to debug inside this function!
+//inline results in the code being compiled into commands and inserted wherever this function is called, instead of actually calling a function (reduces overhead, increases speed and binary size)
+    #[inline(always)]
     pub fn draw_background(c: &Context, gl: &mut GlGraphics, args: &RenderArgs){
         //this could have been done with a static field that is always at top left or is at top left, as long as the total width is smaller than the field 
         //OR this could have been downscaled as long as the field doesn't fit into the window
@@ -80,5 +80,26 @@ impl PistonView {
         rec.draw(bkgrnd, &draw_state::DrawState::default(), c.transform, gl);
     }
 
+    pub fn draw_objects( c: &Context, gl: &mut GlGraphics, args: &RenderArgs, location: &(f32, f32)){
+        //let transform = c.transform.trans(location.0.into(), location.1.into());
+        let (act_x, act_y) = to_screen_coordinates(location.0, location.1, args);
+
+        let circle = graphics::ellipse::circle(act_x.into(), act_y.into(), CIRCLERADIUS.into());
+        ellipse(RED, circle, c.transform, gl);
+    }
+
+    
+
+}
+
+//this function takes x/y coordinates from an object and transfers them into 
+#[inline(always)]
+pub fn to_screen_coordinates(x: f32, y: f32, args: &RenderArgs) -> (f32, f32){
+    let mid_x = args.window_size[0]/2.0;
+    let mid_y = args.window_size[1]/2.0;
+    let x0: f32 = mid_x as f32 - FIELDWIDTH/2.0f32;
+    let y0: f32 = mid_y as f32 - FIELDHEIGHT/2.0f32;
+
+    return (x0+ x, y0+y);
 
 }
