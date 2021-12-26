@@ -5,8 +5,10 @@ extern crate piston;
 
 mod view;
 mod model;
+mod constants;
 
 use std::time::Instant;
+use constants::{FIELDWIDTH, FIELDHEIGHT};
 use glutin_window::GlutinWindow;
 use model::Model;
 use opengl_graphics::{ OpenGL};
@@ -16,21 +18,21 @@ use piston::window::WindowSettings;
 use view::PistonView;
 
 
+
 fn main() {
 
         // Change this to OpenGL::V2_1 if not working.
         let opengl = OpenGL::V3_2;
     // Create an Glutin window.
-    let mut window: GlutinWindow = WindowSettings::new("spinning-square", [200, 200])
+    let mut window: GlutinWindow = WindowSettings::new("glorper!", [FIELDWIDTH as u32 +40, FIELDHEIGHT as u32 +40])
         .graphics_api(opengl)
         .build()
         .unwrap();
 
-
     let mut events = Events::new(EventSettings::new());
     let mut start = Instant::now();
     let mut model =  Model::new(800.0f32, 800.0f32, (400.0f32, 600.0f32), (10.0f32, 10.0f32));
-    let mut view = PistonView::new(&model.rotation, opengl);
+    let mut view = PistonView::new(&model.rotation, opengl, &model.ball_pos);
 
     //TODO: split rendering and game logic to different threads. Check if this is possible with channels(sync)
     while let Some(e) = events.next(&mut window) {

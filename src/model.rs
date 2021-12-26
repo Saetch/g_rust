@@ -5,7 +5,7 @@ pub struct Model{
     width : f32,
     height: f32,
     //Arc -> atomically reference counted, used to share data between threads, mutex for MUTability and thread safety (rust enforces thread safety or it throws)
-    ball_pos: Arc<Mutex<(f32, f32)>>,
+    pub ball_pos: Arc<Mutex<(f32, f32)>>,
     ball_dir: (f32, f32),
     pub rotation: Arc<Mutex<f64>>
 }
