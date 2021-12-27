@@ -7,7 +7,7 @@ mod view;
 mod model;
 mod constants;
 mod controller;
-
+mod glorper_line;
 
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -45,7 +45,7 @@ fn main() {
         view = PistonView::new(&unwrap_model.rotation, opengl, &unwrap_model.ball_pos); //if you were to use two model.lock().unwrap()s in this declaration, the application would deadlock
     }
     let mut controller = Controller::new(&model);
-    //TODO: split rendering and game logic to different threads. Check if this is possible with channels(sync), otherwise might use shared message buffer that is continuously read from
+    //TODO: split rendering and game logic to different threads. Check if this is possible with channels(sync), otherwise might use shared message buffer that is continuously read from. Compare performance if needed
     while let Some(e) = events.next(&mut window) {
         if let Some(args) = e.render_args() {
             view.render(&args);

@@ -1,11 +1,13 @@
-use std::sync::{Arc, Mutex};
-
+use std::sync::{Arc, Mutex, RwLock};
+use crate::glorper_line::GlorperLine;
 use piston::UpdateArgs;
 pub struct Model{
     //Arc -> atomically reference counted, used to share data between threads, mutex for MUTability and thread safety (rust enforces thread safety or it throws)
     pub ball_pos: Arc<Mutex<(f32, f32)>>,
     ball_dir: (f32, f32),
-    pub rotation: Arc<Mutex<f64>>
+    pub rotation: Arc<Mutex<f64>>,
+    //RwLock makes multiple reads to shared data simultaneously possible. Write access is blocked, tho.
+    pub elements: Arc<RwLock<Vec<GlorperLine>>>,
 }
 
 impl Model {
@@ -14,6 +16,7 @@ impl Model {
             ball_dir: dir,
             ball_pos: Arc::new(Mutex::new(o)),
             rotation: Arc::new(Mutex::new(0.0f64)),
+            elements: Arc::new(RwLock::new(Vec::new())),
         }
     }
     pub fn update(&mut self, args : &UpdateArgs){

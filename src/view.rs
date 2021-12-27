@@ -39,8 +39,6 @@ impl PistonView {
 
 
         let position = *self.pos.lock().unwrap();
-        //place it at x,y, in this case in the middle: args.window_size[0] -> width, args.window_size[1] -> height
-        let (x, y) = (args.window_size[0] / 2.0, args.window_size[1] / 2.0);
         self.gl.draw(args.viewport(), |c, gl| {
             //the functions used here, like clear/rectangle are in namespace graphics::*, the use statement makes these omittable
             clear(DARKGREY, gl);
