@@ -17,7 +17,7 @@ use glutin_window::GlutinWindow;
 use model::Model;
 use opengl_graphics::{ OpenGL};
 use piston::event_loop::{EventSettings, Events};
-use piston::input::{RenderEvent, UpdateEvent, MouseScrollEvent, ButtonEvent};
+use piston::input::{RenderEvent, UpdateEvent, ButtonEvent};
 use piston::window::WindowSettings;
 use view::PistonView;
 
@@ -39,7 +39,7 @@ fn main() {
     let mut start = Instant::now();
     let mut view;
     //WIDTH and HEIGHT are defined in constants.rs
-    let mut model =  Arc::new(Mutex::new(Model::new( (450.0f32, 400.0f32), (10.0f32, 10.0f32))));
+    let model =  Arc::new(Mutex::new(Model::new( (450.0f32, 400.0f32), (10.0f32, 10.0f32))));
     {
         let unwrap_model = model.lock().unwrap();                           //mutex gets automatically unlocked, when out of scope, so these parenthesis: {} are used to make a new scope, but view is declared above and thus is only changed here        
         view = PistonView::new(&unwrap_model.rotation, opengl, &unwrap_model.ball_pos); //if you were to use two model.lock().unwrap()s in this declaration, the application would deadlock
