@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use piston::{ButtonArgs, Key, Button};
+use piston::{ButtonArgs, Key, Button, ButtonState};
 
 use crate::model::Model;
 
@@ -20,6 +20,9 @@ impl Controller{
     }
 
     pub fn compute_input(&mut self, args: &ButtonArgs){
+        if args.state == ButtonState::Release{                          //only compute key presses, not 
+            return;
+        }
         match args.button{
             //add the type of input to read here
             Button::Keyboard(key) => self.compute_keyboard(key),

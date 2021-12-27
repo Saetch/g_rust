@@ -42,7 +42,7 @@ fn main() {
     let model =  Arc::new(Mutex::new(Model::new( (450.0f32, 400.0f32), (10.0f32, 10.0f32))));
     {
         let unwrap_model = model.lock().unwrap();                           //mutex gets automatically unlocked, when out of scope, so these parenthesis: {} are used to make a new scope, but view is declared above and thus is only changed here        
-        view = PistonView::new(&unwrap_model.rotation, opengl, &unwrap_model.ball_pos); //if you were to use two model.lock().unwrap()s in this declaration, the application would deadlock
+        view = PistonView::new( opengl, &unwrap_model.ball_pos , &unwrap_model.elements); //if you were to use two model.lock().unwrap()s in this declaration, the application would deadlock
     }
     let mut controller = Controller::new(&model);
     //TODO: split rendering and game logic to different threads. Check if this is possible with channels(sync), otherwise might use shared message buffer that is continuously read from. Compare performance if needed
@@ -50,7 +50,7 @@ fn main() {
         if let Some(args) = e.render_args() {
             view.render(&args);
             let elapsed = start.elapsed();
-            println!("Elapsed time: {}ms", elapsed.as_millis());              //This gets called 60 times per second (60fps), if the elapsed time shown is >17, the fps dropped
+           // println!("Elapsed time: {}ms", elapsed.as_millis());              //This gets called 60 times per second (60fps), if the elapsed time shown is >17, the fps dropped
             start = Instant::now();
             
             continue;                                      //SKIP the other possible updateArgs, because only one can be valid

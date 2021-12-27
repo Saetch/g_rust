@@ -1,11 +1,11 @@
-use std::sync::{ Arc, Mutex};
+use std::sync::{ Arc, Mutex, RwLock};
 
 use graphics::{Context, rectangle::{ self, rectangle_by_corners}, Rectangle, Transformed, draw_state, ellipse};
 use opengl_graphics::{GlGraphics, OpenGL};
 use piston::{ RenderArgs};
 
 //constants are defined in constants.rs, for use in the whole project
-use crate::constants::{self as constant, FIELDWIDTH, FIELDHEIGHT, CIRCLERADIUS};
+use crate::{constants::{self as constant, FIELDWIDTH, FIELDHEIGHT, CIRCLERADIUS}, glorper_line::GlorperLine};
 
 
         //const values are compile time values and thus don't slow down the program
@@ -18,16 +18,16 @@ use crate::constants::{self as constant, FIELDWIDTH, FIELDHEIGHT, CIRCLERADIUS};
 pub struct PistonView{
    // model_ref : Weak<Model>,
     gl: GlGraphics,
-    rot: Arc<Mutex<f64>>,
     pos: Arc<Mutex<(f32, f32)>>,
+    elements: Arc<RwLock<Vec<GlorperLine>>>,
 }
 
 impl PistonView {
-    pub fn new(rot: &Arc<Mutex<f64>>, opengl: OpenGL, pos: &Arc<Mutex<(f32, f32)>>) -> Self{
+    pub fn new(opengl: OpenGL, pos: &Arc<Mutex<(f32, f32)>>, elems: &Arc<RwLock<Vec<GlorperLine>>>) -> Self{
 
         PistonView{
             gl : GlGraphics::new(opengl),
-            rot: Arc::clone(rot),
+            elements : Arc::clone(elems),
             pos: Arc::clone(pos),
         }
     }
