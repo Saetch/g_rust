@@ -3,12 +3,13 @@ extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
 
+mod vect_2d;
 mod view;
 mod model;
 mod constants;
 mod controller;
 mod glorper_line;
-
+mod gerade;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use constants::{FIELDWIDTH, FIELDHEIGHT};
@@ -38,7 +39,7 @@ fn main() {
     let mut events = Events::new(EventSettings::new());
     let mut start = Instant::now();
     let mut view;
-    //WIDTH and HEIGHT are defined in constants.rs
+    //WIDTH and HEIGHT are defined in constants.rs, these are the original ball coordinates
     let model =  Arc::new(Mutex::new(Model::new( (450.0f64, 400.0f64))));
     {
         let unwrap_model = model.lock().unwrap();                           //mutex gets automatically unlocked, when out of scope, so these parenthesis: {} are used to make a new scope, but view is declared above and thus is only changed here        
