@@ -1,3 +1,3 @@
-pub const CIRCLERADIUS : f32= 20.0f32;
-pub const FIELDWIDTH: f32 = 900.0f32;
-pub const FIELDHEIGHT: f32 = 600.0f32;
+pub const CIRCLERADIUS : f64= 20.0f64;
+pub const FIELDWIDTH: f64 = 900.0f64;
+pub const FIELDHEIGHT: f64 = 600.0f64;

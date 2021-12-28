@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex, RwLock};
 
-use graphics::{Context, rectangle::{ self, rectangle_by_corners}, Rectangle, Transformed, draw_state, ellipse};
+use graphics::{Context, rectangle::{ self, rectangle_by_corners}, Rectangle, Transformed, draw_state, ellipse, types::Radius};
 use opengl_graphics::{GlGraphics, OpenGL};
 use piston::{ RenderArgs};
 
@@ -18,12 +18,12 @@ use crate::{constants::{self as constant, FIELDWIDTH, FIELDHEIGHT, CIRCLERADIUS}
 pub struct PistonView{
    // model_ref : Weak<Model>,
     gl: GlGraphics,
-    pos: Arc<Mutex<(f32, f32)>>,
+    pos: Arc<Mutex<(f64, f64)>>,
     elements: Arc<RwLock<Vec<GlorperLine>>>,
 }
 
 impl PistonView {
-    pub fn new(opengl: OpenGL, pos: &Arc<Mutex<(f32, f32)>>, elems: &Arc<RwLock<Vec<GlorperLine>>>) -> Self{
+    pub fn new(opengl: OpenGL, pos: &Arc<Mutex<(f64, f64)>>, elems: &Arc<RwLock<Vec<GlorperLine>>>) -> Self{
 
         PistonView{
             gl : GlGraphics::new(opengl),
@@ -44,7 +44,7 @@ impl PistonView {
             clear(DARKGREY, gl);
 
             PistonView::draw_background(&c, gl, args);
-            PistonView::draw_objects(&c, gl, args, &position);
+            PistonView::draw_objects(&c, gl, args, &position, &self.elements);
 
 //transformations are calculatedfor the viewPort. This means, that the center of the screen will be moved to x,y, then 
 //rotated, then offset an then the square is drawn with the top left corner at the given point. Then the screen is reset to the default
@@ -67,23 +67,37 @@ impl PistonView {
     #[inline(always)]
     pub fn draw_background(c: &Context, gl: &mut GlGraphics, args: &RenderArgs){
         //this could have been done with a static field that is always at top left or is at top left, as long as the total width is smaller than the field 
-        //OR this could have been downscaled as long as the field doesn't fit into the window
+        //OR this could  be downscaled as long as the field doesn't fit into the window, possible extension in the future
 
 
         let mid_x = args.window_size[0]/2.0;
         let mid_y = args.window_size[1]/2.0;
         let rec = Rectangle::new(BLUE);
         let bkgrnd = rectangle_by_corners(mid_x - (FIELDWIDTH as f64 / 2.0) , mid_y - (FIELDHEIGHT as f64 /2.0), mid_x + (FIELDWIDTH as f64 / 2.0), mid_y + (FIELDHEIGHT as f64 /2.0));
-        //this function was called with &c, but it does not need to be dereferenced here (*c), as this is automatically done, so Object functions can be called on reference
+        //this function was called with &c, but it does not need to be dereferenced here (*c), as this is automatically done, so Object functions can be called on reference (autoderef)
         rec.draw(bkgrnd, &draw_state::DrawState::default(), c.transform, gl);
     }
 
-    pub fn draw_objects( c: &Context, gl: &mut GlGraphics, args: &RenderArgs, location: &(f32, f32)){
-        //let transform = c.transform.trans(location.0.into(), location.1.into());
+    pub fn draw_objects( c: &Context, gl: &mut GlGraphics, args: &RenderArgs, location: &(f64, f64), elements: &Arc<RwLock<Vec<GlorperLine>>>){
+        {
+            let readvec = elements.read().unwrap();
+            for elem in readvec.iter(){            //into_iter consumes original data, while .iter() does not. But into_iter is faster (no clone)
+                let (x0, y0) = to_screen_coordinates(elem.start.0, elem.start.1, args);
+                let (xend, yend) = to_screen_coordinates(elem.end.0,  elem.end.1, args);
+                
+                graphics::line(GREEN, 3.0, [x0 as f64, y0 as f64, xend as f64, yend as f64], c.transform, gl);
+    
+            }
+        }
+        
+        
+        //let transform = c.transform.trans(location.0.into(), location.1.into()), would transform the drawing center into the actual center of the circle, so you could draw a circle at the correct spit with location of 0,0
         let (act_x, act_y) = to_screen_coordinates(location.0, location.1, args);
 
         let circle = graphics::ellipse::circle(act_x.into(), act_y.into(), CIRCLERADIUS.into());
         ellipse(RED, circle, c.transform, gl);
+
+
     }
 
     
@@ -92,11 +106,11 @@ impl PistonView {
 
 //this function takes x/y coordinates from an object and transfers them into 
 #[inline(always)]
-pub fn to_screen_coordinates(x: f32, y: f32, args: &RenderArgs) -> (f32, f32){
+pub fn to_screen_coordinates(x: f64, y: f64, args: &RenderArgs) -> (f64, f64){
     let mid_x = args.window_size[0]/2.0;
     let mid_y = args.window_size[1]/2.0;
-    let x0: f32 = mid_x as f32 - FIELDWIDTH/2.0f32;
-    let y0: f32 = mid_y as f32 - FIELDHEIGHT/2.0f32;
+    let x0: f64 = mid_x as f64 - FIELDWIDTH/2.0f64;
+    let y0: f64 = mid_y as f64 - FIELDHEIGHT/2.0f64;
 
     return (x0+ x, y0+y);
 
