@@ -95,7 +95,7 @@ fn main() {
         if let Some(args) = e.update_args() {
             let ret = sendermodelx.try_send(args);
             if ret.is_err(){
-                println!("Could not send args to model thread!");
+                println!("Could not send args to model thread!");           //if the app still works when this occurs, this might mean that the buffer on model side is full and it might be behind schedule
             }
             continue;                                     //SKIP the other possible updateArgs, because only one can be validoo
         }
@@ -103,7 +103,7 @@ fn main() {
         if let Some(args) = e.button_args(){
             let ret = controllersenderx.try_send(args);
             if ret.is_err(){
-                println!("Could not send args to controller thread!");
+                println!("Could not send args to controller thread!");      //if the app still works when this occurs, this might mean that the buffer on controller side is full and it might be behind schedule
             }
             continue;                                     //SKIP the other possible updateArgs, because only one can be validoo
         }
