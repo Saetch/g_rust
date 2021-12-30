@@ -1,11 +1,12 @@
-use std::{sync::{Arc, Mutex, RwLock}, f64::consts::PI, thread, time::Duration};
+use std::{sync::{Arc, Mutex, RwLock},
+ thread, time::Duration};
 use crate::{ gerade::Gerade, constants::{FIELDWIDTH, FIELDHEIGHT, SPAWN_SIDES_WITH_DELAY}};
 use graphics::math::Vec2d;
-use piston::{UpdateArgs, Position};
+use piston::{UpdateArgs};
 pub struct Model{
     //Arc -> atomically reference counted, used to share data between threads, mutex for MUTability and thread safety (rust enforces thread safety or it throws)
     pub ball_pos: Arc<Mutex<(f64, f64)>>,
-    ball_mov_vec: Vec2d,
+    pub ball_mov_vec: Arc<RwLock<Vec2d>>,           //this is not necessary for single use, but it makes calling multiple references of model simultaneously possible, as the model does not change, only the arc references do
     //RwLock makes multiple reads to shared data simultaneously possible. Write access is blocked, tho.
     pub elements: Arc<RwLock<Vec<Gerade>>>,
 
@@ -14,7 +15,7 @@ pub struct Model{
 impl Model {
     pub fn new( o: (f64, f64)) -> Self{
         Model{
-            ball_mov_vec: Vec2d::from( [40.0f64, -40.0f64]),
+            ball_mov_vec: Arc::new(RwLock::new(Vec2d::from( [40.0f64, -40.0f64]))),
             ball_pos: Arc::new(Mutex::new(o)),
             elements: Arc::new(RwLock::new(Vec::new())),
         }
@@ -22,8 +23,9 @@ impl Model {
 
     pub fn update(& self, args : &UpdateArgs){
         let mut pos = self.ball_pos.lock().unwrap();
-        pos.0+= self.ball_mov_vec[0]*args.dt;
-        pos.1+= self.ball_mov_vec[1]*args.dt;
+        let ball_mov_vec = *self.ball_mov_vec.read().unwrap();
+        pos.0+= ball_mov_vec[0]*args.dt;
+        pos.1+= ball_mov_vec[1]*args.dt;
     }
 
     pub fn spawn_sides(& self){
@@ -32,6 +34,11 @@ impl Model {
             thread::sleep(Duration::from_millis(SPAWN_SIDES_WITH_DELAY.into()));
             self.debug_rad_action();
         }
+        let mut mutval = self.elements.write().unwrap();
+        for grad in &mut *mutval{
+            grad.normalize();
+        }
+        drop(mutval);                           //dropping the value means releasing the lock. This isn't necessary from a functional perspective, but it will make things faster, if there is more to follow, because other threads can pick up faster. Alternatively could have put this in {} parenthesis and not used drop()
     }
 
     pub fn debug_rad_action(& self){
