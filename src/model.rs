@@ -14,7 +14,7 @@ pub struct Model{
 impl Model {
     pub fn new( o: (f64, f64)) -> Self{
         Model{
-            ball_mov_vec: Vec2d::from( [10.0f64, -10.0f64]),
+            ball_mov_vec: Vec2d::from( [40.0f64, -40.0f64]),
             ball_pos: Arc::new(Mutex::new(o)),
             elements: Arc::new(RwLock::new(Vec::new())),
         }
