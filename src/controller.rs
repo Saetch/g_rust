@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
 use piston::{ButtonArgs, Key, Button, ButtonState};
 
@@ -7,13 +7,13 @@ use crate::model::Model;
 //Implementation is quite minimalistic, multiple states might be necessary for multiple game states
 #[derive()]
 pub struct Controller{
-    model: Arc<Mutex<Model>>,
+    model: Arc<RwLock<Model>>,
 
 }
 
 
 impl Controller{
-    pub fn new( modelr : &Arc<Mutex<Model>>) -> Self{
+    pub fn new( modelr : &Arc<RwLock<Model>>) -> Self{
         return Controller{
             model : modelr.clone(),
         };
@@ -36,8 +36,8 @@ impl Controller{
     fn compute_keyboard(&mut self, key: Key){
 
         match key{
-            Key::O => self.model.lock().unwrap().debug_rad_action(),
-            Key::M => self.model.lock().unwrap().spawn_sides(),
+            Key::O => self.model.read().unwrap().debug_rad_action(),
+            Key::M => self.model.read().unwrap().spawn_sides(),
             _ =>(),
         }
 

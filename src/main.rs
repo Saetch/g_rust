@@ -9,7 +9,7 @@ mod model;
 mod constants;
 mod controller;
 mod gerade;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Instant;
 use constants::{FIELDWIDTH, FIELDHEIGHT};
 use controller::Controller;
@@ -40,13 +40,13 @@ fn main() {
     //This is the event buffer, it gets constantly filled if an event occurs to the window and is read in the game loop
     let mut events = Events::new(EventSettings::new());
     //WIDTH and HEIGHT are defined in constants.rs, these are the original ball coordinates
-    let model =  Arc::new(Mutex::new(Model::new( (450.0f64, 400.0f64))));   //model is mutexed, as it gets called from input aswell!
+    let model =  Arc::new(RwLock::new(Model::new( (450.0f64, 400.0f64))));   //model is mutexed, as it gets called from input aswell!
     
     let mut controller = Controller::new(&model);
 
     let mut view;
     {
-        let unwrap_model = model.lock().unwrap();                           //mutex gets automatically unlocked, when out of scope, so these parenthesis: {} are used to make a new scope, but view is declared above and thus is only changed here    (could also drop the parenthesis and use drop(unwrap_model) adter creating the view)    
+        let unwrap_model = model.read().unwrap();                           //mutex gets automatically unlocked, when out of scope, so these parenthesis: {} are used to make a new scope, but view is declared above and thus is only changed here    (could also drop the parenthesis and use drop(unwrap_model) adter creating the view)    
         view = PistonView::new( opengl, &unwrap_model.ball_pos , &unwrap_model.elements); //if you were to use two model.lock().unwrap()s in this declaration, the application would deadlock
     }
     //CREATE a thread for rendering. Send render args via channel
@@ -58,7 +58,7 @@ fn main() {
             let arg_p = receivermodelx.recv();
             if !arg_p.is_err(){
                 let args = arg_p.unwrap();
-                model.lock().unwrap().update(&args);
+                model.read().unwrap().update(&args);
 
             }
 

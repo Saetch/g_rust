@@ -20,11 +20,13 @@ impl Model {
         }
     }
 
-    pub fn update(&mut self, args : &UpdateArgs){
+    pub fn update(& self, args : &UpdateArgs){
         let mut pos = self.ball_pos.lock().unwrap();
+        pos.0+= self.ball_mov_vec[0]*args.dt;
+        pos.1+= self.ball_mov_vec[1]*args.dt;
     }
 
-    pub fn spawn_sides(&mut self){
+    pub fn spawn_sides(& self){
         //TODO, this falls back to debug_rad, if actually implemented, update this
         for _ in 0..(FIELDWIDTH/25.0f64).floor() as usize *2 + (FIELDHEIGHT/25.0).floor() as usize *2{
             thread::sleep(Duration::from_millis(SPAWN_SIDES_WITH_DELAY.into()));
@@ -32,7 +34,7 @@ impl Model {
         }
     }
 
-    pub fn debug_rad_action(&mut self){
+    pub fn debug_rad_action(& self){
         let mut _state = 0;
         {
             //This was put into this extra scope that ends before state is processed, so the readval lock is undone before continuing
