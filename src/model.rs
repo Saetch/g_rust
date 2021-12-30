@@ -1,31 +1,39 @@
-use std::{sync::{Arc, Mutex, RwLock},
- thread, time::Duration};
-use crate::{ gerade::Gerade, constants::{FIELDWIDTH, FIELDHEIGHT, SPAWN_SIDES_WITH_DELAY}};
-use graphics::math::Vec2d;
+use std::{sync::{Arc, Mutex, RwLock, RwLockWriteGuard},
+ thread, time::Duration, hash::Hasher, vec};
+use crate::{ gerade::Gerade, constants::{FIELDWIDTH, FIELDHEIGHT, SPAWN_SIDES_WITH_DELAY}, vect_2d::Vector2D};
 use piston::{UpdateArgs};
 pub struct Model{
     //Arc -> atomically reference counted, used to share data between threads, mutex for MUTability and thread safety (rust enforces thread safety or it throws)
     pub ball_pos: Arc<Mutex<(f64, f64)>>,
-    pub ball_mov_vec: Arc<RwLock<Vec2d>>,           //this is not necessary for single use, but it makes calling multiple references of model simultaneously possible, as the model does not change, only the arc references do
+    pub ball_mov_vec: Arc<RwLock<Vector2D>>,           //this is not necessary for single use, but it makes calling multiple references of model simultaneously possible, as the model does not change, only the arc references do
     //RwLock makes multiple reads to shared data simultaneously possible. Write access is blocked, tho.
     pub elements: Arc<RwLock<Vec<Gerade>>>,
 
+    dummy_element: Arc<RwLock<(f64, f64)>>,   //holds the final point of the last added line
 }
 
 impl Model {
     pub fn new( o: (f64, f64)) -> Self{
         Model{
-            ball_mov_vec: Arc::new(RwLock::new(Vec2d::from( [40.0f64, -40.0f64]))),
+            ball_mov_vec: Arc::new(RwLock::new(Vector2D { x: 40.0, y: -40.0 })),
             ball_pos: Arc::new(Mutex::new(o)),
             elements: Arc::new(RwLock::new(Vec::new())),
+            dummy_element: Arc::new(RwLock::new((0.0,0.0))),
         }
     }
 
+  /*   this is not working, if needed, update this and unquote
+      pub fn order_elements_x_then_y(&self ){
+        let mut vec_guard = self.elements.write().unwrap();
+        vec_guard.sort_by(|a, b| a.start_punkt.0.cmp(b.start_punkt.0))
+    }*/
+
     pub fn update(& self, args : &UpdateArgs){
         let mut pos = self.ball_pos.lock().unwrap();
-        let ball_mov_vec = *self.ball_mov_vec.read().unwrap();
-        pos.0+= ball_mov_vec[0]*args.dt;
-        pos.1+= ball_mov_vec[1]*args.dt;
+        let ball_mov_vec = &*self.ball_mov_vec.read().unwrap();        
+        pos.0+= ball_mov_vec.x*args.dt;
+        pos.1+= ball_mov_vec.y*args.dt;
+        
     }
 
     pub fn spawn_sides(& self){
@@ -38,8 +46,12 @@ impl Model {
         for grad in &mut *mutval{
             grad.normalize();
         }
+
+        for el in &*mutval{
+            println!("x: {}, y: {}",el.start_punkt.0, el.start_punkt.1);
+        }
         drop(mutval);                           //dropping the value means releasing the lock. This isn't necessary from a functional perspective, but it will make things faster, if there is more to follow, because other threads can pick up faster. Alternatively could have put this in {} parenthesis and not used drop()
-    }
+    } 
 
     pub fn debug_rad_action(& self){
         let mut _state = 0;
@@ -50,34 +62,68 @@ impl Model {
                 return ;
             }
         }
+        //create a rectangle of green lines around the field with subsequent calls
+
         let mut mutval = self.elements.write().unwrap();
         if mutval.len() < (FIELDWIDTH / 25.0f64).floor() as usize {
             if mutval.len() == 0{
                 let start = (0.0, 0.0);
                 let end = (25.0, 0.0);
-                mutval.push(Gerade::from_two_points(start, end));
+                
+                *self.dummy_element.write().unwrap() = insert_lines_sorted(Gerade::from_two_points(start, end), &mut mutval);
                 return;
             }
-            let end_punkt = mutval.last().unwrap().end_punkt;
-            mutval.push(Gerade::from_two_points(end_punkt, (end_punkt.0 +25.0, 0.0)));
+            let end_punkt = *self.dummy_element.read().unwrap();
+            *self.dummy_element.write().unwrap() = insert_lines_sorted(Gerade::from_two_points(end_punkt, (end_punkt.0 +25.0, 0.0)), &mut mutval);
             return;
         }
         if mutval.len() < (FIELDWIDTH/25.0f64).floor() as usize + (FIELDHEIGHT/25.0).floor() as usize {
-            let end_punkt = mutval.last().unwrap().end_punkt;
+            let end_punkt = *self.dummy_element.read().unwrap();
 
-            mutval.push(Gerade::from_two_points(end_punkt, (end_punkt.0, end_punkt.1+25.0)));
+            *self.dummy_element.write().unwrap() = insert_lines_sorted(Gerade::from_two_points(end_punkt, (end_punkt.0, end_punkt.1+25.0)), &mut mutval);
             return;
         }
         if mutval.len() < (FIELDWIDTH/25.0f64).floor() as usize *2 + (FIELDHEIGHT/25.0).floor() as usize {
-            let end_punkt = mutval.last().unwrap().end_punkt;
+            let end_punkt =*self.dummy_element.read().unwrap();
 
-            mutval.push(Gerade::from_two_points(end_punkt, (end_punkt.0 -25.0, end_punkt.1)));
+            *self.dummy_element.write().unwrap() = insert_lines_sorted(Gerade::from_two_points(end_punkt, (end_punkt.0 -25.0, end_punkt.1)), &mut mutval);
             return;
         }
         
-        let end_punkt = mutval.last().unwrap().end_punkt;
+        let end_punkt = *self.dummy_element.read().unwrap();
 
-        mutval.push(Gerade::from_two_points(end_punkt, (end_punkt.0 , end_punkt.1 -25.0)));
+        *self.dummy_element.write().unwrap() = insert_lines_sorted(Gerade::from_two_points(end_punkt, (end_punkt.0 , end_punkt.1 -25.0)), &mut mutval);
 
     }
+}
+
+
+/**crate::
+ * This function inserts the given Line at the correct index into the vector, update this for certain collision detection algorithms
+ * 
+ */
+pub fn insert_lines_sorted(gerad : Gerade, vector: &mut RwLockWriteGuard<Vec<Gerade>>) -> (f64, f64){
+        let start_y = gerad.start_punkt.1;
+        let start_x = gerad.start_punkt.0;
+        let ret = gerad.end_punkt;
+        let mut check_x = true;
+        for i in 0..vector.len(){
+            if check_x{
+                if vector[i].start_punkt.0 > start_x{
+                    vector.insert(i, gerad );
+                    return ret;
+                }else if vector[i].start_punkt.0 == start_x{
+                    check_x = false;
+                }
+            }else if vector[i].start_punkt.0 > start_x || vector[i].start_punkt.1 > start_y{
+                vector.insert(i, gerad );
+                return ret; 
+            }
+
+        }
+        vector.push(gerad);
+        return ret;
+
+    
+
 }

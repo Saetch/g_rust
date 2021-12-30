@@ -48,6 +48,8 @@ impl Gerade{
         }
     }
 
+    
+
 
     pub fn calculate_normal_vektor(&mut self){
         let vektor = (-self.linien_vektor.1, self.linien_vektor.0);

@@ -63,7 +63,7 @@ fn main() {
             }
 
         }
-        println!("Stopping rendering thread!");
+        println!("Stopping model thread!");
     });
 
     let (controllersenderx, controllerreceiverx) = flume::unbounded();
@@ -87,7 +87,7 @@ fn main() {
 
             view.render(&args);
             let elapsed = start.elapsed();
-            println!("Elapsed time: {}ms", elapsed.as_millis());              //This gets called 60 times per second (60fps), if the elapsed time shown is >17, the fps dropped
+           // println!("Elapsed time: {}ms", elapsed.as_millis());              //This gets called 60 times per second (60fps), if the elapsed time shown is >17, the fps dropped
             start = Instant::now();  
             continue;                                      //SKIP the other possible updateArgs, because only one can be valid
         }
