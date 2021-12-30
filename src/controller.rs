@@ -37,6 +37,7 @@ impl Controller{
 
         match key{
             Key::O => self.model.lock().unwrap().debug_rad_action(),
+            Key::M => self.model.lock().unwrap().spawn_sides(),
             _ =>(),
         }
 

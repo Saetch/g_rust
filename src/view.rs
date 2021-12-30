@@ -5,7 +5,7 @@ use opengl_graphics::{GlGraphics, OpenGL};
 use piston::{ RenderArgs};
 
 //constants are defined in constants.rs, for use in the whole project
-use crate::{constants::{self as constant, FIELDWIDTH, FIELDHEIGHT, CIRCLERADIUS}, glorper_line::GlorperLine};
+use crate::{constants::{self as constant, FIELDWIDTH, FIELDHEIGHT, CIRCLERADIUS}, gerade::Gerade};
 
 
         //const values are compile time values and thus don't slow down the program
@@ -19,11 +19,11 @@ pub struct PistonView{
    // model_ref : Weak<Model>,
     gl: GlGraphics,
     pos: Arc<Mutex<(f64, f64)>>,
-    elements: Arc<RwLock<Vec<GlorperLine>>>,
+    elements: Arc<RwLock<Vec<Gerade>>>,
 }
 
 impl PistonView {
-    pub fn new(opengl: OpenGL, pos: &Arc<Mutex<(f64, f64)>>, elems: &Arc<RwLock<Vec<GlorperLine>>>) -> Self{
+    pub fn new(opengl: OpenGL, pos: &Arc<Mutex<(f64, f64)>>, elems: &Arc<RwLock<Vec<Gerade>>>) -> Self{
 
         PistonView{
             gl : GlGraphics::new(opengl),
@@ -78,14 +78,14 @@ impl PistonView {
         rec.draw(bkgrnd, &draw_state::DrawState::default(), c.transform, gl);
     }
 
-    pub fn draw_objects( c: &Context, gl: &mut GlGraphics, args: &RenderArgs, location: &(f64, f64), elements: &Arc<RwLock<Vec<GlorperLine>>>){
+    pub fn draw_objects( c: &Context, gl: &mut GlGraphics, args: &RenderArgs, location: &(f64, f64), elements: &Arc<RwLock<Vec<Gerade>>>){
         {
             let readvec = elements.read().unwrap();
             for elem in readvec.iter(){            //into_iter consumes original data, while .iter() does not. But into_iter is faster (no clone)
-                let (x0, y0) = to_screen_coordinates(elem.start.0, elem.start.1, args);
-                let (xend, yend) = to_screen_coordinates(elem.end.0,  elem.end.1, args);
+                let (x0, y0) = to_screen_coordinates(elem.start_punkt.0, elem.start_punkt.1, args);
+                let (xend, yend) = to_screen_coordinates(elem.end_punkt.0,  elem.end_punkt.1, args);
                 
-                graphics::line(GREEN, 3.0, [x0 as f64, y0 as f64, xend as f64, yend as f64], c.transform, gl);
+                graphics::line(GREEN, 2.0, [x0 as f64, y0 as f64, xend as f64, yend as f64], c.transform, gl);
     
             }
         }
