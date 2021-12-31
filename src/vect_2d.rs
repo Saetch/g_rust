@@ -135,8 +135,15 @@ impl Vector2D {
 
         //let the helper line go through 0/0 
         let _ursprung = (0.0, 0.0);
-        let normalvektor = gerade.linien_vektor;
+        let mut normalvektor = gerade.linien_vektor;
 
+         //turn the normalvektor the right way!
+         if normalvektor.0 < 0.0 {
+            normalvektor.0 *= -1.0;
+        }
+        if normalvektor.1 < 0.0 {
+            normalvektor.1 *= -1.0;
+        }
         //let the line to be mirrored on go through the end of this vector. This doesn't matter for the direction of the reflected Vector. The actual place is only relevant for the points if mirrored. The lines in math that we will be looking at, extend to infinity
         let schnittpunkt = (self.x,self.y);
         let spiegel_vector = gerade.normalvektor.unwrap();
@@ -169,13 +176,16 @@ impl Vector2D {
         //second::   normalvektor.1    * h
 
         //so to solve it, we divide both lines through their equivalent normalvektor. this way, on the left sides there will be only  1*h, for both equation
-
+        let mut non_m_var = 0.0;
+        let mut multiplicant = 0.0;
+        let mut skip = false;
         if normalvektor.0 != 0.0{
             first_non_m_variable /= normalvektor.0;
             first_m_multiplicant /= normalvektor.0;
-        }else{
-            first_non_m_variable = 0.0;
-            first_m_multiplicant = 0.0;
+        }else{                      // in this case, the first line looks like this       0   =  first_non_m_variable + first_m_multiplicant * m and can be directly solved
+             skip = true;
+             non_m_var = first_non_m_variable;
+             multiplicant = first_m_multiplicant;
         }
 
         if normalvektor.1 != 0.0{
@@ -183,15 +193,20 @@ impl Vector2D {
             second_non_m_variable/= normalvektor.1;
         }
         else{
-            second_non_m_variable = 0.0;
-            second_m_multiplicant = 0.0;
+            skip = true;
+            non_m_var = second_non_m_variable;
+            multiplicant = second_m_multiplicant;
         }
 
-        //now we can subtract the first line from the second and this will result in an equation that looks like this: 
-        // 0 = non_m_var + multiplicant * m
 
-        let non_m_var = first_non_m_variable - second_non_m_variable;
-        let multiplicant = first_m_multiplicant - second_m_multiplicant;
+        if !skip{
+               //now we can subtract the first line from the second and this will result in an equation that looks like this: 
+               // 0 = non_m_var + multiplicant * m
+
+             non_m_var = first_non_m_variable - second_non_m_variable;
+             multiplicant = first_m_multiplicant - second_m_multiplicant;
+        }
+
 
         //now we subtract non_m_var from 0, to get
         // (-1) * non_m_var = multiplicant*m
@@ -201,6 +216,7 @@ impl Vector2D {
         //next, we divide the left side through multiplicant to receive:
         // left_side/multiplicant = m
         // and we get m
+
         if multiplicant != 0.0{
             left_side /= multiplicant;    //<-- this is equal to m and we can put m in our mirror vector to receive the point the two vectors meet
 
@@ -208,17 +224,15 @@ impl Vector2D {
             left_side = 0.0;
         }
 
-
         //this is the point, where the normalvektor through 0/0 (where our imaginary vector starts) goes throug and meets the (moved) mirrorline. meaning 0/0 -> crossing-point is half of 0/0 -> mirrored point
         let actual_crossing_point = (    first_non_m_variable + first_m_multiplicant* left_side /* left side == m */     ,  second_non_m_variable + second_m_multiplicant * left_side   );
         let mirrored_x = actual_crossing_point.0  * 2.0;
         let mirrored_y = actual_crossing_point.1 *2.0;
         
         //now the new vector is the crossing point (original) - the mirrored point!
+        
         self.x = schnittpunkt.0 - mirrored_x;
         self.y = schnittpunkt.1 - mirrored_y;
-
-
         //now just make sure the vector still is the same length, so the speed does not get messed up (it might slightly change length due to floating point arithmetics)
         let self_speed = (self.x*self.x + self.y * self.y).sqrt();
         let speed_multiplicant = speed / self_speed;
