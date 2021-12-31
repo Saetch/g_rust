@@ -1,6 +1,6 @@
 use std::{sync::{Arc, RwLock, RwLockWriteGuard},
  thread, time::Duration};
-use crate::{ gerade::Gerade, constants::{FIELDWIDTH, FIELDHEIGHT, SPAWN_SIDES_WITH_DELAY, self}, vect_2d::Vector2D};
+use crate::{ gerade::Gerade, constants::{FIELDWIDTH, FIELDHEIGHT, SPAWN_SIDES_WITH_DELAY, self, CIRCLERADIUS}, vect_2d::Vector2D};
 use piston::{UpdateArgs};
 pub struct Model{
     //Arc -> atomically reference counted, used to share data between threads, mutex for MUTability and thread safety (rust enforces thread safety or it throws)
@@ -15,7 +15,7 @@ pub struct Model{
 impl Model {
     pub fn new( o: (f64, f64)) -> Self{
         Model{
-            ball_mov_vec: Arc::new(RwLock::new(Vector2D { x: 40.0, y: -40.0 })),
+            ball_mov_vec: Arc::new(RwLock::new(Vector2D { x: 120.0, y: -120.0 })),
             ball_pos: Arc::new(RwLock::new(o)),
             elements: Arc::new(RwLock::new(Vec::new())),
             dummy_element: Arc::new(RwLock::new((0.0,0.0))),
@@ -32,16 +32,24 @@ impl Model {
     pub fn update(& self, args : &UpdateArgs){
         if self.speed > 0.0001{
             let pos = self.ball_pos.read().unwrap();
-            let ball_mov_vec = &*self.ball_mov_vec.read().unwrap();        
-            let new_x = ball_mov_vec.x*args.dt + pos.0;
-            let new_y = ball_mov_vec.y*args.dt + pos.1;
+            let mut ball_mov_vec = self.ball_mov_vec.write().unwrap();                              //keeping this variable for longer is no problem, since the only thread that accesses it locking, is this thread
+            let mut new_x = ball_mov_vec.x*args.dt + pos.0;
+            let mut new_y = ball_mov_vec.y*args.dt + pos.1;
             drop(pos);      //this is dropped here, so the rendering thread does not delay if it tries to read the ballpos.
             for element in &*self.elements.read().unwrap(){
                 if (element.start_punkt.0 <= new_x + 50.0 && element.start_punkt.0 >= new_x - 50.0) &&  (element.start_punkt.1 <= new_y + 50.0 && element.start_punkt.1 >= new_y -50.0) {            //only precisely check for a hit, if the elements are close enough. For larger amounts of elements, try a dedicated data structure, which yields only the relevant elements
-                    
-                        if self.check_for_hit(element){
-                            self.ball_mov_vec.write().unwrap().mirror_on(element, self.speed);
-                            return;
+                        let ret = self.check_for_hit(element);
+                        if ret.0{
+                            if ret.1{
+                                ball_mov_vec.mirror_on(element, self.speed);
+                                new_x+= 2.0* ball_mov_vec.x*args.dt;
+                                new_y+= 2.0* ball_mov_vec.y*args.dt;
+                                break;
+                            }
+                            ball_mov_vec.mirror_on_normal_vec(element, self.speed);
+                            new_x+= 2.0* ball_mov_vec.x*args.dt;
+                            new_y+= 2.0* ball_mov_vec.y*args.dt;
+                            break;
                         }
                     
                 }
@@ -49,7 +57,8 @@ impl Model {
             let mut mutpos = self.ball_pos.write().unwrap();
             mutpos.0 = new_x;
             mutpos.1 = new_y;
-        }
+
+    }
 
         
     }
@@ -120,21 +129,29 @@ impl Model {
 
     }
 
-    pub fn check_for_hit(&self, gerade: &Gerade) -> bool{
+    /**
+     * returns wether or not the ball hit the line AND wether or not the movement vector needs to be mirrored on the original line or its normal variant
+     */
+    pub fn check_for_hit(&self, gerade: &Gerade) -> (bool, bool){
 
         let ball_pos = *self.ball_pos.read().unwrap();
-
 
 
         let xdiff = ball_pos.0 - gerade.start_punkt.0 ;
         let ydiff = ball_pos.1 - gerade.start_punkt.1 ;
         let distance_from_start = (xdiff*xdiff + ydiff*ydiff).sqrt();
 
-        if gerade.distance_to(ball_pos) < constants::CIRCLERADIUS{
-            return true;
+        let ret = gerade.distance_to(ball_pos);
+        //println!("Distance: {}", ret.0);
+        if ret.0 < CIRCLERADIUS{
+            if ret.1 {
+                return (true, true);
+            }
+
+            return (true, false);
         }
 
-        return false;
+        return (false , false);                         //the second bool is irrelevant here
     }
 }
 

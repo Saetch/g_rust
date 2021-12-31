@@ -38,7 +38,14 @@ impl PistonView {
 
 
 
-        let position = *self.pos.read().unwrap();
+        let position_read = self.pos.read();
+        let position ;
+        if position_read.is_err(){
+            println!("{}", position_read.err().unwrap());
+            return;
+        }else{
+            position = position_read.unwrap();
+        }
         self.gl.draw(args.viewport(), |c, gl| {
             //the functions used here, like clear/rectangle are in namespace graphics::*, the use statement makes these omittable
             clear(DARKGREY, gl);
