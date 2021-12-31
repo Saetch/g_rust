@@ -8,8 +8,13 @@ pub struct Model{
     pub ball_mov_vec: Arc<RwLock<Vector2D>>,           //this is not necessary for single use, but it makes calling multiple references of model simultaneously possible, as the model does not change, only the arc references do
     //RwLock makes multiple reads to shared data simultaneously possible. Write access is blocked, tho.
     pub elements: Arc<RwLock<Vec<Gerade>>>,
+
     speed: f64,                               //this speed value is used to keep the vector the same length after it has been mirrored. This is relevant because it could occur due to floating point arithmetics that it changes speed in a large amount of hits
     dummy_element: Arc<RwLock<(f64, f64)>>,   //holds the final point of the last added line
+
+    //These were added later to replace single ball with multiple balls
+    pub ball_mov_vectors: Arc<RwLock<Vec<RwLock<Vector2D>>>>,
+    pub ball_positions: Arc<RwLock<Vec<RwLock<Vector2D>>>>,
 }
 
 impl Model {
@@ -19,6 +24,8 @@ impl Model {
             ball_pos: Arc::new(RwLock::new(o)),
             elements: Arc::new(RwLock::new(Vec::new())),
             dummy_element: Arc::new(RwLock::new((0.0,0.0))),
+            ball_mov_vectors: Arc::new(RwLock::new(Vec::new())),
+            ball_positions: Arc::new(RwLock::new(Vec::new())),
             speed: 0.0,
         }
     }
