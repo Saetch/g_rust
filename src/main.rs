@@ -41,7 +41,7 @@ fn main() {
     let mut events = Events::new(EventSettings::new());
     //WIDTH and HEIGHT are defined in constants.rs, these are the original ball coordinates
     let model =  Arc::new(RwLock::new(Model::new( (450.0f64, 400.0f64))));   //model is mutexed, as it gets called from input aswell!
-    
+    model.write().unwrap().init_speed();
     let mut controller = Controller::new(&model);
 
     let mut view;
@@ -87,7 +87,7 @@ fn main() {
 
             view.render(&args);
             let elapsed = start.elapsed();
-           // println!("Elapsed time: {}ms", elapsed.as_millis());              //This gets called 60 times per second (60fps), if the elapsed time shown is >17, the fps dropped
+            //println!("Elapsed time: {}ms", elapsed.as_millis());              //This gets called 60 times per second (60fps), if the elapsed time shown is >17, the fps dropped
             start = Instant::now();  
             continue;                                      //SKIP the other possible updateArgs, because only one can be valid
         }

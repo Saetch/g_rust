@@ -1,6 +1,7 @@
 pub struct Gerade{
     pub start_punkt: (f64, f64),
     pub linien_vektor: (f64, f64),
+    pub length: f64,
     pub end_punkt: (f64, f64),
     pub normalvektor: Option<(f64, f64)>,       //Option can be None (equivalent to Null in other languages)
     pub closest_point_to_zerozero: Option<(f64, f64)>
@@ -17,6 +18,7 @@ impl Gerade{
             end_punkt: end,
             normalvektor: None,
             closest_point_to_zerozero: None,
+            length: laenge,
         }
     }
 
@@ -28,6 +30,7 @@ impl Gerade{
             end_punkt: endpunkt,
             normalvektor: None,
             closest_point_to_zerozero: None,
+            length: ((startpunkt.0 - endpunkt.0).powi(2) + (startpunkt.1 - endpunkt.1).powi(2)).sqrt(),
         }
     }
 
@@ -62,6 +65,24 @@ impl Gerade{
 
         self.linien_vektor.0 = self.linien_vektor.0 / veklength;
         self.linien_vektor.1 = self.linien_vektor.1 / veklength;
+    }
+
+    /**
+     * returns the distance and wether or not the point can be reached by a 90 degrees turn at the line
+     */
+    pub fn distance_to(&self, pos: (f64, f64)) -> (f64, bool){
+        //1. check wether or not the point is closer to the actual line or closer to the end-points!
+        let distance_to_start = (self.start_punkt.0.powi(2) + self.start_punkt.1.powi(2)).sqrt();
+        let distance_from_end  = (self.end_punkt.0.powi(2) + self.end_punkt.1.powi(2)).sqrt();
+        if distance_to_start > distance_from_end + self.length || distance_from_end > distance_to_start + self.length{      //this means, that the point cannot be reached by a 90degree angle from the line, e.g. it is above the start or below the end..
+            if distance_to_start < distance_from_end{
+                return (distance_to_start, false);
+            }else{
+                return (distance_from_end, false);
+            }
+        }
+        //2. if the point is closer to the line, get the closest distance
+        return ( 0.0, true);
     }
 
 }

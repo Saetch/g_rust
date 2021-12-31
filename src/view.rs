@@ -1,11 +1,11 @@
 use std::sync::{ Arc, Mutex, RwLock};
 
-use graphics::{Context, rectangle::{ self, rectangle_by_corners}, Rectangle, Transformed, draw_state, ellipse, types::Radius};
+use graphics::{Context, rectangle::{  rectangle_by_corners}, Rectangle, draw_state, ellipse};
 use opengl_graphics::{GlGraphics, OpenGL};
 use piston::{ RenderArgs};
 
 //constants are defined in constants.rs, for use in the whole project
-use crate::{constants::{self as constant, FIELDWIDTH, FIELDHEIGHT, CIRCLERADIUS}, gerade::Gerade};
+use crate::{constants::{FIELDWIDTH, FIELDHEIGHT, CIRCLERADIUS}, gerade::Gerade};
 
 
         //const values are compile time values and thus don't slow down the program
@@ -18,12 +18,12 @@ use crate::{constants::{self as constant, FIELDWIDTH, FIELDHEIGHT, CIRCLERADIUS}
 pub struct PistonView{
    // model_ref : Weak<Model>,
     gl: GlGraphics,
-    pos: Arc<Mutex<(f64, f64)>>,
+    pos: Arc<RwLock<(f64, f64)>>,
     elements: Arc<RwLock<Vec<Gerade>>>,
 }
 
 impl PistonView {
-    pub fn new(opengl: OpenGL, pos: &Arc<Mutex<(f64, f64)>>, elems: &Arc<RwLock<Vec<Gerade>>>) -> Self{
+    pub fn new(opengl: OpenGL, pos: &Arc<RwLock<(f64, f64)>>, elems: &Arc<RwLock<Vec<Gerade>>>) -> Self{
 
         PistonView{
             gl : GlGraphics::new(opengl),
@@ -38,7 +38,7 @@ impl PistonView {
 
 
 
-        let position = *self.pos.lock().unwrap();
+        let position = *self.pos.read().unwrap();
         self.gl.draw(args.viewport(), |c, gl| {
             //the functions used here, like clear/rectangle are in namespace graphics::*, the use statement makes these omittable
             clear(DARKGREY, gl);

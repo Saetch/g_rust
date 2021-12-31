@@ -1,14 +1,14 @@
-use std::{sync::{Arc, Mutex, RwLock, RwLockWriteGuard},
- thread, time::Duration, hash::Hasher, vec};
-use crate::{ gerade::Gerade, constants::{FIELDWIDTH, FIELDHEIGHT, SPAWN_SIDES_WITH_DELAY}, vect_2d::Vector2D};
+use std::{sync::{Arc, RwLock, RwLockWriteGuard},
+ thread, time::Duration};
+use crate::{ gerade::Gerade, constants::{FIELDWIDTH, FIELDHEIGHT, SPAWN_SIDES_WITH_DELAY, self}, vect_2d::Vector2D};
 use piston::{UpdateArgs};
 pub struct Model{
     //Arc -> atomically reference counted, used to share data between threads, mutex for MUTability and thread safety (rust enforces thread safety or it throws)
-    pub ball_pos: Arc<Mutex<(f64, f64)>>,
+    pub ball_pos: Arc<RwLock<(f64, f64)>>,
     pub ball_mov_vec: Arc<RwLock<Vector2D>>,           //this is not necessary for single use, but it makes calling multiple references of model simultaneously possible, as the model does not change, only the arc references do
     //RwLock makes multiple reads to shared data simultaneously possible. Write access is blocked, tho.
     pub elements: Arc<RwLock<Vec<Gerade>>>,
-
+    speed: f64,                               //this speed value is used to keep the vector the same length after it has been mirrored. This is relevant because it could occur due to floating point arithmetics that it changes speed in a large amount of hits
     dummy_element: Arc<RwLock<(f64, f64)>>,   //holds the final point of the last added line
 }
 
@@ -16,9 +16,10 @@ impl Model {
     pub fn new( o: (f64, f64)) -> Self{
         Model{
             ball_mov_vec: Arc::new(RwLock::new(Vector2D { x: 40.0, y: -40.0 })),
-            ball_pos: Arc::new(Mutex::new(o)),
+            ball_pos: Arc::new(RwLock::new(o)),
             elements: Arc::new(RwLock::new(Vec::new())),
             dummy_element: Arc::new(RwLock::new((0.0,0.0))),
+            speed: 0.0,
         }
     }
 
@@ -29,11 +30,34 @@ impl Model {
     }*/
 
     pub fn update(& self, args : &UpdateArgs){
-        let mut pos = self.ball_pos.lock().unwrap();
-        let ball_mov_vec = &*self.ball_mov_vec.read().unwrap();        
-        pos.0+= ball_mov_vec.x*args.dt;
-        pos.1+= ball_mov_vec.y*args.dt;
+        if self.speed > 0.0001{
+            let pos = self.ball_pos.read().unwrap();
+            let ball_mov_vec = &*self.ball_mov_vec.read().unwrap();        
+            let new_x = ball_mov_vec.x*args.dt + pos.0;
+            let new_y = ball_mov_vec.y*args.dt + pos.1;
+            drop(pos);      //this is dropped here, so the rendering thread does not delay if it tries to read the ballpos.
+            for element in &*self.elements.read().unwrap(){
+                if (element.start_punkt.0 <= new_x + 50.0 && element.start_punkt.0 >= new_x - 50.0) &&  (element.start_punkt.1 <= new_y + 50.0 && element.start_punkt.1 >= new_y -50.0) {            //only precisely check for a hit, if the elements are close enough. For larger amounts of elements, try a dedicated data structure, which yields only the relevant elements
+                    
+                        if self.check_for_hit(element){
+                            self.ball_mov_vec.write().unwrap().mirror_on(element, self.speed);
+                            return;
+                        }
+                    
+                }
+            }
+            let mut mutpos = self.ball_pos.write().unwrap();
+            mutpos.0 = new_x;
+            mutpos.1 = new_y;
+        }
+
         
+    }
+
+    pub fn init_speed(&mut self){
+        let xdiff = self.ball_mov_vec.read().unwrap().x;
+        let ydiff = self.ball_mov_vec.read().unwrap().y;
+        self.speed = (xdiff*xdiff + ydiff*ydiff).sqrt();
     }
 
     pub fn spawn_sides(& self){
@@ -94,6 +118,23 @@ impl Model {
 
         *self.dummy_element.write().unwrap() = insert_lines_sorted(Gerade::from_two_points(end_punkt, (end_punkt.0 , end_punkt.1 -25.0)), &mut mutval);
 
+    }
+
+    pub fn check_for_hit(&self, gerade: &Gerade) -> bool{
+
+        let ball_pos = *self.ball_pos.read().unwrap();
+
+
+
+        let xdiff = ball_pos.0 - gerade.start_punkt.0 ;
+        let ydiff = ball_pos.1 - gerade.start_punkt.1 ;
+        let distance_from_start = (xdiff*xdiff + ydiff*ydiff).sqrt();
+
+        if gerade.distance_to(ball_pos) < constants::CIRCLERADIUS{
+            return true;
+        }
+
+        return false;
     }
 }
 
