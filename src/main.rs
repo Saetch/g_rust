@@ -40,7 +40,7 @@ fn main() {
     //This is the event buffer, it gets constantly filled if an event occurs to the window and is read in the game loop
     let mut events = Events::new(EventSettings::new());
     //WIDTH and HEIGHT are defined in constants.rs, these are the original ball coordinates
-    let model =  Arc::new(RwLock::new(Model::new( (450.0f64, 400.0f64))));   //model is mutexed, as it gets called from input aswell!
+    let model =  Arc::new(RwLock::new(Model::new( (300.0f64, 300.0f64))));   //model is mutexed, as it gets called from input aswell!
     model.write().unwrap().init_speed();
     let mut controller = Controller::new(&model);
 

@@ -101,7 +101,6 @@ impl Gerade{
         let start_diff = ((pos.0 - self.start_punkt.0).powi(2) + (pos.1 - self.start_punkt.1).powi(2)).sqrt();
         let end_diff = ((pos.0 - self.end_punkt.0).powi(2) + (pos.1 - self.end_punkt.1).powi(2)).sqrt();
 
-        println!("ret: {:7}  end_diff: {:7}", ret.0, end_diff);
 
         //these iffs are for when the point cannot be reached by a right angle from inside startpoint to endpoint
         if  cross_dif_start > self.length{

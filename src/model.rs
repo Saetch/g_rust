@@ -20,7 +20,7 @@ pub struct Model{
 impl Model {
     pub fn new( o: (f64, f64)) -> Self{
         Model{
-            ball_mov_vec: Arc::new(RwLock::new(Vector2D { x: 200.0, y: -80.0 })),
+            ball_mov_vec: Arc::new(RwLock::new(Vector2D { x: 200.0, y: -200.0 })),
             ball_pos: Arc::new(RwLock::new(o)),
             elements: Arc::new(RwLock::new(Vec::new())),
             dummy_element: Arc::new(RwLock::new((0.0,0.0))),
@@ -43,9 +43,9 @@ impl Model {
             let new_x = ball_mov_vec.x*args.dt + pos.0;
             let new_y = ball_mov_vec.y*args.dt + pos.1;
             let mut offset = (0.0, 0.0);
-            let mut hitcount = 0;
-            let mut hitpoints_vector :Vec<((f64,f64), f64)> = Vec::new();
-            let default_dir_vec = ball_mov_vec.clone();
+            let mut defaultref = false;
+            let mut to_reflect_vec = Vector2D {x : 0.0 , y : 0.0};
+            let mut distance= 100.0;
             let actualvector = self.elements.read().unwrap();
             drop(pos);      //this is dropped here, so the rendering thread does not delay if it tries to read the ballpos.
             'elementsloop:for element in &*actualvector{
@@ -55,57 +55,53 @@ impl Model {
                         if ret.0.is_some(){
 
                             if ret.1{
-                                for g in  &hitpoints_vector{          //      check wether the point has been hit already. Needs some lee-way due to floating point conversion and polygons ending where others start
-                                    if  f64::abs( g.0.0 - new_point.0 ) <2.5 && f64::abs( g.0.1 - new_point.1) < 2.5{ 
-                                               if g.1 < ret.0.unwrap() {
-                                                   continue 'elementsloop;
-                                               }else{                       //a wrong hit was detected that should be overwritten
-                                                    *ball_mov_vec = default_dir_vec.clone();
-                                               }
-                                       }
-                                   }
-                                    ball_mov_vec.mirror_on(element, self.speed);
-                                    offset.0 = 2.0* ball_mov_vec.x*args.dt;
-                                    offset.1 = 2.0* ball_mov_vec.y*args.dt;
-                                    hitcount+=1;
-                                    hitpoints_vector.push((new_point , ret.0.unwrap()));
-                                
+                                    if !defaultref {
+                                        to_reflect_vec.x = 0.0;
+                                        to_reflect_vec.y = 0.0;
+                                    }
+                                    to_reflect_vec.x += element.linien_vektor.0;
+                                    to_reflect_vec.y += element.linien_vektor.1;
+
+                                    distance = f64::min(distance, ret.0.unwrap());
+                                    defaultref = true;
 
                             }
-                            else{
-                                    for g in  &hitpoints_vector{          //      check wether the point has been hit already. Needs some lee-way due to floating point conversion and polygons ending where others start
-                                         if  f64::abs( g.0.0 - new_point.0 ) <2.5 && f64::abs( g.0.1 - new_point.1) < 2.5{ 
-                                                    if g.1 < ret.0.unwrap() {
-                                                        continue 'elementsloop;
-                                                    }else{                       //a wrong hit was detected that should be overwritten
-                                                        *ball_mov_vec = default_dir_vec.clone();
-                                                   }
-                                            }
-                                        }
+                            else if !defaultref{
+                                to_reflect_vec.x += element.normalvektor.unwrap().0;
+                                to_reflect_vec.y += element.normalvektor.unwrap().1;
 
-                                   ball_mov_vec.mirror_on_normal_vec(element, self.speed);
-                                   offset.0 = 2.0* ball_mov_vec.x*args.dt;
-                                   offset.1 = 2.0* ball_mov_vec.y*args.dt;
-                                   hitcount +=1;
-                                   hitpoints_vector.push((new_point , ret.0.unwrap()));
-                              
+                                distance = f64::min(distance, ret.0.unwrap());
+
                             }
 
                         }   
                     
                 }
             }
-            for e in hitpoints_vector{
-                println!("WE HIT: {}  /  {} ", e.0.1, e.0.1);
-            }
+
             drop(actualvector);
-            if hitcount > 0 {
-                println!("Hitc: {}",hitcount);
+
+            if to_reflect_vec.x != 0.0 || to_reflect_vec.y != 0.0 {
+                ball_mov_vec.mirror_on_vec(to_reflect_vec, self.speed); 
+                let actualdist = CIRCLERADIUS+ 1.0- distance;               //make sure the ball is not touching anything after it is moved!
+                let oned_vec = (ball_mov_vec.x / ball_mov_vec.length() , ball_mov_vec.y / ball_mov_vec.length());
+                offset.0 = actualdist * oned_vec.0;
+                offset.1 = actualdist * oned_vec.1;
+                println!("Hit!");
             }
 
+
+
+
             let mut mutpos = self.ball_pos.write().unwrap();
-            mutpos.0 = new_x + offset.0;
-            mutpos.1 = new_y + offset.1;
+            if offset.0 != 0.0 || offset.1 != 0.0{
+                mutpos.0 += offset.0;
+                mutpos.1 += offset.1;
+            }else{
+                mutpos.0 = new_x ;
+                mutpos.1 = new_y ;
+            }
+
 
     }
 
@@ -185,10 +181,7 @@ impl Model {
 
         let ball_pos = *self.ball_pos.read().unwrap();
 
-        
-        if ball_pos.0 > 880.0 && ball_pos.0 > 798.0 {
-            println!("oh!");
-        }
+
 
         let ret = gerade.distance_to(ball_pos, actual_crossing_point);
         //println!("Distance: {}", ret.0);

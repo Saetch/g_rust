@@ -1,3 +1,4 @@
+
 use crate::gerade::Gerade;
 #[derive(Clone)]
 pub struct Vector2D{
@@ -117,8 +118,16 @@ impl Vector2D {
     }
 
 
+    pub fn mirror_on_vec(&mut self, vector: Vector2D, speed : f64){
+        let mut grade = Gerade::from_point_vec(  (0.0,0.0), (vector.x, vector.y) ,1.0);
+        grade.normalize();
+        self.mirror_on(&grade, speed);
+    }
 
 
+    pub fn length(&self) -> f64{
+        return (self.x.powi(2) + self.y.powi(2)).sqrt();
+    }
 
     pub fn mirror_on_normal_vec(&mut self, gerade : &Gerade, speed: f64){               //this function works analogous to the mirror on function, just with inverted vectors
 
