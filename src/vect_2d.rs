@@ -1,5 +1,5 @@
 use crate::gerade::Gerade;
-
+#[derive(Clone)]
 pub struct Vector2D{
     pub x : f64,
     pub y : f64,
@@ -16,16 +16,10 @@ impl Vector2D {
 
         //let the helper line go through 0/0 
         let _ursprung = (0.0, 0.0);
-        let mut normalvektor = gerade.normalvektor.unwrap();
+        let normalvektor = gerade.normalvektor.unwrap();
 
 
-        //turn the normalvektor the right way!
-        if normalvektor.0 < 0.0 {
-            normalvektor.0 *= -1.0;
-        }
-        if normalvektor.1 < 0.0 {
-            normalvektor.1 *= -1.0;
-        }
+
         //let the line to be mirrored on go through the end of this vector. This doesn't matter for the direction of the reflected Vector. The actual place is only relevant for the points if mirrored. The lines in math that we will be looking at, extend to infinity
         let schnittpunkt = (self.x,self.y);
         let spiegel_vector = gerade.linien_vektor;

@@ -1,3 +1,5 @@
+use std::cmp;
+
 pub struct Gerade{
     pub start_punkt: (f64, f64),
     pub linien_vektor: (f64, f64),
@@ -55,8 +57,16 @@ impl Gerade{
 
 
     pub fn calculate_normal_vektor(&mut self){
-        let vektor = (-self.linien_vektor.1, self.linien_vektor.0);
-        self.normalvektor = Some(vektor);
+        let mut normalvektor = (-self.linien_vektor.1, self.linien_vektor.0);
+
+                //turn the normalvektor the right way!
+                if normalvektor.0 < 0.0 {
+                    normalvektor.0 *= -1.0;
+                }
+                if normalvektor.1 < 0.0 {
+                    normalvektor.1 *= -1.0;
+                }
+        self.normalvektor = Some(normalvektor);
     }
 
     pub fn only_normalize(&mut self){
@@ -70,26 +80,46 @@ impl Gerade{
     /**
      * returns the distance and wether or not the point can be reached by a 90 degrees turn at the line
      */
-    pub fn distance_to(&self, pos: (f64, f64)) -> (f64, bool){
-        let xdiff_start = self.start_punkt.0 - pos.0;
-        let ydiff_start = self.start_punkt.1 - pos.1;
-        let xdiff_end = self.end_punkt.0 - pos.0;
-        let ydiff_end = self.end_punkt.1 - pos.1;
-        //1. check wether or not the point is closer to the actual line or closer to the end-points!
-        let distance_to_start = (xdiff_start.powi(2) + ydiff_start.powi(2)).sqrt();
-        let distance_from_end  = (xdiff_end.powi(2) + ydiff_end.powi(2)).sqrt();
-        if distance_to_start > distance_from_end + self.length || distance_from_end > distance_to_start + self.length{      //this means, that the point cannot be reached by a 90degree angle from the line, --> it is above the start or below the end..
-            if distance_to_start < distance_from_end{
-                return (distance_to_start, false);
-            }else{
-                return (distance_from_end, false);
-            }
+    pub fn distance_to(&self, pos: (f64, f64), actual_crossing_point : &mut (f64, f64)) -> (f64, bool){
+        
+        //the crossing_point is kind of a third return value, that gets changed to what point is the hitting point. So the hit can be registered as being already done
+        
+        let ret =  self.distance_to_right_angle_point(pos);
+
+
+        let new_p = ret.1;
+
+        *actual_crossing_point= (pos.0 + new_p.0 , pos.1 + new_p.1);
+        let diffx_start = actual_crossing_point.0 - self.start_punkt.0;
+        let diffy_start = actual_crossing_point.1 - self.start_punkt.1;
+        let diffx_end = actual_crossing_point.0 - self.end_punkt.0;
+        let diffy_end = actual_crossing_point.1 - self.end_punkt.1;
+
+        let cross_dif_start = (diffx_start.powi(2) + diffy_start.powi(2)).sqrt();
+        let cross_dif_end = (diffx_end.powi(2)+ diffy_end.powi(2)).sqrt();
+        //here we need the actual point
+        let start_diff = ((pos.0 - self.start_punkt.0).powi(2) + (pos.1 - self.start_punkt.1).powi(2)).sqrt();
+        let end_diff = ((pos.0 - self.end_punkt.0).powi(2) + (pos.1 - self.end_punkt.1).powi(2)).sqrt();
+
+        println!("ret: {:7}  end_diff: {:7}", ret.0, end_diff);
+
+        //these iffs are for when the point cannot be reached by a right angle from inside startpoint to endpoint
+        if  cross_dif_start > self.length{
+            return if cross_dif_start> cross_dif_end {   (end_diff, false )} else{  (start_diff,false)};
         }
-        //2. if the point is closer to the line, get the closest distance
-        return ( self.distance_to_right_angle_point(pos), true);
+        if cross_dif_end > self.length{
+            
+            return (start_diff, false);
+        }
+
+        return ( ret.0, true);
     }
 
-    fn distance_to_right_angle_point(&self, pos :(f64, f64)) -> f64{
+
+    /**
+     * This function determines the distance between a line and a point that can be reached by doing a 90 degree turn on the line. This is irrelevant of the start and endpoints of the in-game-line and only does the calculation for the line extended to infinity
+     * */
+    fn distance_to_right_angle_point(&self, pos :(f64, f64)) ->( f64, (f64 ,f64) ){
             //to get this, you need the distance between the pos (the point) and the crossing point between self and a helper vector, that looks like pos + h* self.normalvektor
             //in order to make this easier, we will be moving the original point to 0/0 and thus move the imaginary this (the mirror) the same way. This way we have less variables to worry about.
 
@@ -100,6 +130,7 @@ impl Gerade{
             let neuer_startpunkt = (self.start_punkt.0 - pos.0 , self.start_punkt.1 - pos.1);
             let spiegel_vector = self.linien_vektor;
             
+
                     //first row
         let mut first_non_m_variable = neuer_startpunkt.0;
         let mut first_m_multiplicant = spiegel_vector.0;    //this variable *m
@@ -154,7 +185,7 @@ impl Gerade{
 
         let neuer_schnittpunkt = (first_non_m_variable + first_m_multiplicant* left_side , second_non_m_variable + second_m_multiplicant * left_side );
 
-        return ( neuer_schnittpunkt.0.powi(2) + neuer_schnittpunkt.1.powi(2)).sqrt();
+        return (( neuer_schnittpunkt.0.powi(2) + neuer_schnittpunkt.1.powi(2)).sqrt() , neuer_schnittpunkt );
         
         }
 

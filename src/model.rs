@@ -20,7 +20,7 @@ pub struct Model{
 impl Model {
     pub fn new( o: (f64, f64)) -> Self{
         Model{
-            ball_mov_vec: Arc::new(RwLock::new(Vector2D { x: 120.0, y: -120.0 })),
+            ball_mov_vec: Arc::new(RwLock::new(Vector2D { x: 120.0, y: 120.0 })),
             ball_pos: Arc::new(RwLock::new(o)),
             elements: Arc::new(RwLock::new(Vec::new())),
             dummy_element: Arc::new(RwLock::new((0.0,0.0))),
@@ -40,30 +40,72 @@ impl Model {
         if self.speed > 0.0001{
             let pos = self.ball_pos.read().unwrap();
             let mut ball_mov_vec = self.ball_mov_vec.write().unwrap();                              //keeping this variable for longer is no problem, since the only thread that accesses it locking, is this thread
-            let mut new_x = ball_mov_vec.x*args.dt + pos.0;
-            let mut new_y = ball_mov_vec.y*args.dt + pos.1;
+            let new_x = ball_mov_vec.x*args.dt + pos.0;
+            let new_y = ball_mov_vec.y*args.dt + pos.1;
+            let mut offset = (0.0, 0.0);
+            let mut hitcount = 0;
+            let mut hitpoints_vector :Vec<((f64,f64), f64)> = Vec::new();
+            let default_dir_vec = ball_mov_vec.clone();
+            let actualvector = self.elements.read().unwrap();
             drop(pos);      //this is dropped here, so the rendering thread does not delay if it tries to read the ballpos.
-            for element in &*self.elements.read().unwrap(){
+            'elementsloop:for element in &*actualvector{
                 if (element.start_punkt.0 <= new_x + 50.0 && element.start_punkt.0 >= new_x - 50.0) &&  (element.start_punkt.1 <= new_y + 50.0 && element.start_punkt.1 >= new_y -50.0) {            //only precisely check for a hit, if the elements are close enough. For larger amounts of elements, try a dedicated data structure, which yields only the relevant elements
-                        let ret = self.check_for_hit(element);
-                        if ret.0{
+                        let mut new_point = (0.0, 0.0);
+                        let ret = self.check_for_hit(element, &mut new_point);
+                        if ret.0.is_some(){
+
                             if ret.1{
-                                ball_mov_vec.mirror_on(element, self.speed);
-                                new_x+= 2.0* ball_mov_vec.x*args.dt;
-                                new_y+= 2.0* ball_mov_vec.y*args.dt;
-                                break;
+                                for g in  &hitpoints_vector{          //      check wether the point has been hit already. Needs some lee-way due to floating point conversion and polygons ending where others start
+                                    if  f64::abs( g.0.0 - new_point.0 ) <2.5 && f64::abs( g.0.1 - new_point.1) < 2.5{ 
+                                               if g.1 < ret.0.unwrap() {
+                                                   continue 'elementsloop;
+                                               }else{                       //a wrong hit was detected that should be overwritten
+                                                    *ball_mov_vec = default_dir_vec.clone();
+                                               }
+                                       }
+                                   }
+                                    ball_mov_vec.mirror_on(element, self.speed);
+                                    offset.0 = 2.0* ball_mov_vec.x*args.dt;
+                                    offset.1 = 2.0* ball_mov_vec.y*args.dt;
+                                    hitcount+=1;
+                                    hitpoints_vector.push((new_point , ret.0.unwrap()));
+                                
+
                             }
-                            ball_mov_vec.mirror_on_normal_vec(element, self.speed);
-                            new_x+= 2.0* ball_mov_vec.x*args.dt;
-                            new_y+= 2.0* ball_mov_vec.y*args.dt;
-                            break;
-                        }
+                            else{
+                                    for g in  &hitpoints_vector{          //      check wether the point has been hit already. Needs some lee-way due to floating point conversion and polygons ending where others start
+                                         if  f64::abs( g.0.0 - new_point.0 ) <2.5 && f64::abs( g.0.1 - new_point.1) < 2.5{ 
+                                                    if g.1 < ret.0.unwrap() {
+                                                        continue 'elementsloop;
+                                                    }else{                       //a wrong hit was detected that should be overwritten
+                                                        *ball_mov_vec = default_dir_vec.clone();
+                                                   }
+                                            }
+                                        }
+
+                                   ball_mov_vec.mirror_on_normal_vec(element, self.speed);
+                                   offset.0 = 2.0* ball_mov_vec.x*args.dt;
+                                   offset.1 = 2.0* ball_mov_vec.y*args.dt;
+                                   hitcount +=1;
+                                   hitpoints_vector.push((new_point , ret.0.unwrap()));
+                              
+                            }
+
+                        }   
                     
                 }
             }
+            for e in hitpoints_vector{
+                println!("WE HIT: {}  /  {} ", e.0.1, e.0.1);
+            }
+            drop(actualvector);
+            if hitcount > 0 {
+                println!("Hitc: {}",hitcount);
+            }
+
             let mut mutpos = self.ball_pos.write().unwrap();
-            mutpos.0 = new_x;
-            mutpos.1 = new_y;
+            mutpos.0 = new_x + offset.0;
+            mutpos.1 = new_y + offset.1;
 
     }
 
@@ -139,26 +181,26 @@ impl Model {
     /**
      * returns wether or not the ball hit the line AND wether or not the movement vector needs to be mirrored on the original line or its normal variant
      */
-    pub fn check_for_hit(&self, gerade: &Gerade) -> (bool, bool){
+    pub fn check_for_hit(&self, gerade: &Gerade, actual_crossing_point: &mut (f64, f64)) -> (Option<f64>, bool){
 
         let ball_pos = *self.ball_pos.read().unwrap();
 
+        
+        if ball_pos.0 > 880.0 && ball_pos.0 > 798.0 {
+            println!("oh!");
+        }
 
-        let xdiff = ball_pos.0 - gerade.start_punkt.0 ;
-        let ydiff = ball_pos.1 - gerade.start_punkt.1 ;
-        let distance_from_start = (xdiff*xdiff + ydiff*ydiff).sqrt();
-
-        let ret = gerade.distance_to(ball_pos);
+        let ret = gerade.distance_to(ball_pos, actual_crossing_point);
         //println!("Distance: {}", ret.0);
         if ret.0 < CIRCLERADIUS{
             if ret.1 {
-                return (true, true);
+                return (Some(ret.0), true);
             }
 
-            return (true, false);
+            return ( Some(ret.0), false);
         }
 
-        return (false , false);                         //the second bool is irrelevant here
+        return ( None , false);                         //the second bool is irrelevant here
     }
 }
 
