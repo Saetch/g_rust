@@ -1,11 +1,11 @@
-use std::sync::{ Arc, Mutex, RwLock};
+use std::sync::{ Arc, Mutex, RwLock, RwLockReadGuard};
 
 use graphics::{Context, rectangle::{  rectangle_by_corners}, Rectangle, draw_state, ellipse};
 use opengl_graphics::{GlGraphics, OpenGL};
 use piston::{ RenderArgs};
 
 //constants are defined in constants.rs, for use in the whole project
-use crate::{constants::{FIELDWIDTH, FIELDHEIGHT, CIRCLERADIUS}, gerade::Gerade};
+use crate::{constants::{FIELDWIDTH, FIELDHEIGHT, CIRCLERADIUS}, gerade::Gerade, vect_2d::Vector2D};
 
 
         //const values are compile time values and thus don't slow down the program
@@ -18,12 +18,12 @@ use crate::{constants::{FIELDWIDTH, FIELDHEIGHT, CIRCLERADIUS}, gerade::Gerade};
 pub struct PistonView{
    // model_ref : Weak<Model>,
     gl: GlGraphics,
-    pos: Arc<RwLock<(f64, f64)>>,
+    pos: Arc<RwLock<Vec<RwLock<Vector2D>>>>,
     elements: Arc<RwLock<Vec<Gerade>>>,
 }
 
 impl PistonView {
-    pub fn new(opengl: OpenGL, pos: &Arc<RwLock<(f64, f64)>>, elems: &Arc<RwLock<Vec<Gerade>>>) -> Self{
+    pub fn new(opengl: OpenGL, pos: &Arc<RwLock<Vec<RwLock<Vector2D>>>>, elems: &Arc<RwLock<Vec<Gerade>>>) -> Self{
 
         PistonView{
             gl : GlGraphics::new(opengl),
@@ -85,7 +85,7 @@ impl PistonView {
         rec.draw(bkgrnd, &draw_state::DrawState::default(), c.transform, gl);
     }
 
-    pub fn draw_objects( c: &Context, gl: &mut GlGraphics, args: &RenderArgs, location: &(f64, f64), elements: &Arc<RwLock<Vec<Gerade>>>){
+    pub fn draw_objects( c: &Context, gl: &mut GlGraphics, args: &RenderArgs, locations: &RwLockReadGuard<Vec<RwLock<Vector2D>>>, elements: &Arc<RwLock<Vec<Gerade>>>){
         {
             let readvec = elements.read().unwrap();
             for elem in readvec.iter(){            //into_iter consumes original data, while .iter() does not. But into_iter is faster (no clone)
@@ -97,12 +97,18 @@ impl PistonView {
             }
         }
         
-        
-        //let transform = c.transform.trans(location.0.into(), location.1.into()), would transform the drawing center into the actual center of the circle, so you could draw a circle at the correct spit with location of 0,0
-        let (act_x, act_y) = to_screen_coordinates(location.0, location.1, args);
+        //draw all circles:
+        for i in 0..(&locations).len(){
 
-        let circle = graphics::ellipse::circle(act_x.into(), act_y.into(), CIRCLERADIUS.into());
-        ellipse(RED, circle, c.transform, gl);
+            let locat = locations[i].read().unwrap();
+            //let transform = c.transform.trans(location.0.into(), location.1.into()), would transform the drawing center into the actual center of the circle, so you could draw a circle at the correct spit with location of 0,0
+            let (act_x, act_y) = to_screen_coordinates(locat.x, locat.y, args);
+
+            let circle = graphics::ellipse::circle(act_x.into(), act_y.into(), CIRCLERADIUS.into());
+            ellipse(RED, circle, c.transform, gl);
+
+        }
+
 
 
     }
