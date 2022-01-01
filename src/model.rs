@@ -20,7 +20,7 @@ pub struct Model{
 impl Model {
     pub fn new( o: (f64, f64)) -> Self{
         Model{
-            ball_mov_vec: Arc::new(RwLock::new(Vector2D { x: 120.0, y: 120.0 })),
+            ball_mov_vec: Arc::new(RwLock::new(Vector2D { x: 200.0, y: -80.0 })),
             ball_pos: Arc::new(RwLock::new(o)),
             elements: Arc::new(RwLock::new(Vec::new())),
             dummy_element: Arc::new(RwLock::new((0.0,0.0))),
