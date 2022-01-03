@@ -29,7 +29,7 @@ impl PistonView {
         let rotation = *self.rot.lock().unwrap();
         //place it at x,y, in this case in the middle: args.window_size[0] -> width, args.window_size[1] -> height
         let (x, y) = (args.window_size[0] / 2.0, args.window_size[1] / 2.0);
-        let square = graphics::rectangle::square(0.0, 0.0, 50.0);
+        let square = graphics::rectangle::square(0.0, 0.0, 100.0);
 
         self.gl.draw(args.viewport(), |c, gl| {
             // Clear the screen.
@@ -41,7 +41,7 @@ impl PistonView {
                 .transform
                 .trans(x, y)
                 .rot_rad(rotation)
-                .trans(-25.0, -25.0);               
+                .trans(-50.0, -50.0);               
 
             // Draw a box rotating around the middle of the screen.
             rectangle(RED, square, transform, gl);
