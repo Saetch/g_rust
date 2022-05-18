@@ -156,7 +156,7 @@ impl Model {
         let mut ball_pos_g = self.ball_positions.write().unwrap();
         let mut ball_mov_g = self.ball_mov_vectors.write().unwrap();
 
-        for _i in 0..120 {
+        for _i in 0..121 {
 
             let mut rand = rand::thread_rng();
             ball_pos_g.push(RwLock::new(Vector2D{x: 400.0, y: 400.0}));
